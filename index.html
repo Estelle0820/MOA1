@@ -96,68 +96,37 @@ function viewClip(t){
       <video id="mainvid" width="900" controls playsinline preload="metadata">
         <source src="${t.stimulus}" type="video/mp4">
       </video>
+      <div id="btnbox"></div>
     </div>
   `;
   return {
     type: jsPsychHtmlButtonResponse,
     stimulus: html,
-    choices: ['Continue →'],
-    // hide button until we explicitly show it
-    button_html: '<button class="jspsych-btn" id="contbtn" style="display:none">%choice%</button>',
+    choices: [],   // no built-in button at first
     data: { phase:"view", ...t },
     on_load: () => {
       const v   = document.getElementById('mainvid');
-      const btn = document.getElementById('contbtn');
+      const box = document.getElementById('btnbox');
       const msg = document.getElementById('watchmsg');
 
-      let revealed = false;
-      let iv = null;
-
       const show = () => {
-        if (revealed) return;
-        revealed = true;
-        btn.style.display = 'inline-block';
-        msg.textContent = 'Thanks! You can continue.';
-        // cleanup
-        ['ended','timeupdate','pause','seeking','canplay','loadedmetadata'].forEach(ev => {
-          v.removeEventListener(ev, detector, true);
-        });
-        if (iv) { clearInterval(iv); iv = null; }
+        if (!box.hasChildNodes()) {
+          msg.textContent = 'Thanks! You can continue.';
+          const btn = document.createElement('button');
+          btn.className = 'jspsych-btn';
+          btn.textContent = 'Continue →';
+          btn.onclick = () => jsPsych.finishTrial({ phase:"view", ...t });
+          box.appendChild(btn);
+        }
       };
 
-      // Condition that counts as "finished"
-      const atEnd = () => {
-        const dur = v.duration;
-        const t   = v.currentTime || 0;
-        // handle NaN durations, short clips, scrubs
-        return Number.isFinite(dur) && dur > 0 && (dur - t) <= 0.1;
-      };
-
-      // A single detector bound to multiple events
-      const detector = () => {
-        if (!revealed && (v.ended || atEnd() || (v.paused && atEnd()))) show();
-      };
-
-      // Start after we know duration/currentTime are meaningful
-      const arm = () => {
-        ['ended','timeupdate','pause','seeking','canplay'].forEach(ev => {
-          v.addEventListener(ev, detector, { passive:true });
-        });
-        // watchdog: catch odd cases where events don’t fire
-        iv = setInterval(detector, 250);
-        // immediate check (e.g., if user had already finished)
-        detector();
-      };
-
-      if (v.readyState >= 1) {  // HAVE_METADATA
-        arm();
-      } else {
-        v.addEventListener('loadedmetadata', arm, { once:true });
-      }
+      v.addEventListener('ended', show, { once:true });
+      v.addEventListener('timeupdate', () => {
+        if (v.duration && v.currentTime >= v.duration - 0.1) show();
+      });
     }
   };
 }
-
 
   // 2a) Preference: discrete 0–4 with text only under 0,2,4
   function prefSlider(t){
