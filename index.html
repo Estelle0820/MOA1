@@ -57,19 +57,19 @@
     };
   }
 
-// 2a) Preference: discrete 0–4, labels just 0 1 2 3 4
+// 2a) Preference: discrete 0–4 with descriptive labels on 0,2,4
 function prefSlider(t){
   return {
     type: jsPsychHtmlSliderResponse,
     stimulus: '<div class="center"><p><strong>How much did you like the clip you just watched?</strong></p></div>',
     min: 0, max: 4, step: 1, slider_start: 2,
-    labels: ['0','1','2','3','4'],
+    labels: ['0 (Not at all)','1','2 (Neutral)','3','4 (Very much)'],
     require_movement: true,
     data: { phase:"preference", ...t }
   };
 }
 
-// 2b) Simultaneity: discrete 0–4, labels just 0 1 2 3 4
+// 2b) Simultaneity: discrete 0–4 with descriptive labels on 0,2,4
 function simultaneitySlider(t){
   return {
     type: jsPsychHtmlSliderResponse,
@@ -79,12 +79,11 @@ function simultaneitySlider(t){
         '<p>(0 = very far apart, 2 = somewhat apart, 4 = exactly the same time)</p>' +
       '</div>',
     min: 0, max: 4, step: 1, slider_start: 2,
-    labels: ['0','1','2','3','4'],
+    labels: ['0 (Very far apart)','1','2 (Somewhat apart)','3','4 (Exactly the same time)'],
     require_movement: true,
     data: { phase:"simultaneity_slider", ...t }
   };
 }
-
 
   // ---- Playback-rate lock helper (robust) ----
   function lockRate(video, rate){
