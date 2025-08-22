@@ -19,10 +19,11 @@
 <body></body>
 
 <script type="module">
-  // show any error on screen
+  // Show any error on screen (so the page is never blank)
   window.onerror = (m, s, l, c, e) =>
     { document.body.innerHTML = "<pre>"+m+"\n"+(e&&e.stack||"")+"</pre>"; };
 
+  // ESM imports (no video plugin needed)
   import { initJsPsych } from "https://esm.sh/jspsych";
   import jsPsychHtmlSliderResponse from "https://esm.sh/@jspsych/plugin-html-slider-response";
   import jsPsychHtmlButtonResponse from "https://esm.sh/@jspsych/plugin-html-button-response";
@@ -110,12 +111,24 @@
       stimulus: gridHTML,
       choices: letters,
       on_load: () => {
-        // muted autoplay allowed; set speed foils to 0.7×
+        // Robustly enforce playbackRate so 0.7× sticks across play/loop
+        const applyRate = (v, r) => { v.defaultPlaybackRate = r; v.playbackRate = r; };
         opts.forEach((o,i)=>{
           const v = document.getElementById(`opt${i}`);
-          v.playbackRate = o.rate;             // 1.0 or 0.7
-          v.addEventListener('canplay', ()=> v.play(), { once:true });
-          v.load();
+          v.muted = true;            // allow autoplay
+          v.playsInline = true;
+
+          v.addEventListener('loadedmetadata', () => {
+            applyRate(v, o.rate);
+            v.play().catch(()=>{ /* ignore autoplay errors */ });
+          }, { once:true });
+
+          v.addEventListener('play', () => applyRate(v, o.rate));
+          v.addEventListener('ratechange', () => {
+            if (v.playbackRate !== o.rate) applyRate(v, o.rate);
+          });
+
+          v.load(); // start loading so loadedmetadata fires
         });
       },
       data: {
@@ -143,4 +156,5 @@
   jsPsych.run(timeline);
 </script>
 </html>
+
 
