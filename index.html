@@ -13,14 +13,16 @@
     .grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; align-items:start; }
     .cell { text-align:center; }
     .tag { font-weight:700; margin:6px 0 8px; }
-    /* Always-visible custom tick row (0–4) */
-    .ticks5 { display:grid; grid-template-columns: repeat(5,1fr); gap:0; margin-top:8px; font-size:12px; color:#333; }
-    .ticks5 span { text-align:center; }
+
+    /* Ensure all five slider labels are always visible and spaced */
+    .jspsych-slider__labels { display:flex !important; justify-content:space-between !important; }
+    .jspsych-slider__labels > li { flex: 0 0 auto; font-size:12px; text-align:center; min-width: 30px; }
   </style>
 </head>
 <body></body>
 
 <script type="module">
+  // Show any JS error on screen
   window.onerror = (m, s, l, c, e) => {
     document.body.innerHTML = "<pre>"+m+"\n"+(e && e.stack || "")+"</pre>";
   };
@@ -34,7 +36,7 @@
     scene: "car",
     direction: "LtoR",
     moa: "3s",
-    stimulus: "videos/car_LtoR_3s.mp4"
+    stimulus: "videos/car_LtoR_3s.mp4"   // <- change if your path differs
   };
 
   const jsPsych = initJsPsych({
@@ -59,28 +61,19 @@
     };
   }
 
-  // 2a) Preference: discrete 0–4; custom tick row shows 0,1,2,3,4
+  // 2a) Preference: discrete 0–4; show 0..4 (text on 0/2/4)
   function prefSlider(t){
     return {
       type: jsPsychHtmlSliderResponse,
       stimulus: '<div class="center"><p><strong>How much did you like the clip you just watched?</strong></p></div>',
       min: 0, max: 4, step: 1, slider_start: 2,
-      labels: [],                      // let our custom ticks handle the visuals
+      labels: ['0 (not at all)','1','2 (neutral)','3','4 (very much)'],
       require_movement: true,
-      prompt: `
-        <div class="ticks5" aria-hidden="true">
-          <span>0 (not at all)</span>
-          <span>1</span>
-          <span>2 (neutral)</span>
-          <span>3</span>
-          <span>4 (very much)</span>
-        </div>
-      `,
       data: { phase:"preference", ...t }
     };
   }
 
-  // 2b) Simultaneity: discrete 0–4; custom tick row shows 0,1,2,3,4
+  // 2b) Simultaneity: discrete 0–4; show 0..4 (text on 0/2/4)
   function simultaneitySlider(t){
     return {
       type: jsPsychHtmlSliderResponse,
@@ -90,30 +83,20 @@
           '<p>(0 = very far apart, 2 = somewhat apart, 4 = exactly the same time)</p>' +
         '</div>',
       min: 0, max: 4, step: 1, slider_start: 2,
-      labels: [],
+      labels: ['0 (very far apart)','1','2 (somewhat apart)','3','4 (exactly the same time)'],
       require_movement: true,
-      prompt: `
-        <div class="ticks5" aria-hidden="true">
-          <span>0 (very far apart)</span>
-          <span>1</span>
-          <span>2 (somewhat apart)</span>
-          <span>3</span>
-          <span>4 (exactly the same time)</span>
-        </div>
-      `,
       data: { phase:"simultaneity_slider", ...t }
     };
   }
 
-  // Playback-rate lock helper
+  // Playback-rate locker for wrong-speed foils
   function lockRate(video, rate){
     const apply = () => { video.defaultPlaybackRate = rate; video.playbackRate = rate; };
+    apply();
     const end = performance.now() + 2000;
     (function tick(){ apply(); if (performance.now() < end) requestAnimationFrame(tick); })();
     const reapply = () => apply();
-    ['play','ratechange','seeking','loadeddata','ended'].forEach(ev => {
-      video.addEventListener(ev, reapply);
-    });
+    ['play','ratechange','seeking','loadeddata','ended'].forEach(ev => video.addEventListener(ev, reapply));
   }
 
   // 3) Memory: 4 choices (correct / wrong-dir / wrong-speed / both wrong)
@@ -154,5 +137,33 @@
           const start = () => {
             if (o.rate !== 1.0) lockRate(v, o.rate); else { v.playbackRate = 1.0; }
             try { if (v.currentTime === 0) v.currentTime = 0.001; } catch(e){}
-            v.play().catch(()=>{}); // user click may be requ
+            v.play().catch(()=>{ /* user click may be required */ });
+          };
+          v.addEventListener('loadeddata', start, { once:true });
+          v.addEventListener('canplay',     start, { once:true });
+        });
+      },
+      data: {
+        phase:"memory",
+        ...t,
+        memory_option_order: opts.map(o=>o.tag).join(','),
+        correct_index
+      },
+      on_finish: d => {
+        d.choice_index = d.response;
+        d.is_correct   = (d.response === correct_index);
+      }
+    };
+  }
 
+  const timeline = [
+    viewClip(T),
+    prefSlider(T),
+    simultaneitySlider(T),
+    memoryTrial(T),
+    { type: jsPsychHtmlButtonResponse, stimulus: '<div class="center"><p>Thanks! Data saved.</p></div>', choices: ['Finish'] }
+  ];
+
+  jsPsych.run(timeline);
+</script>
+</html>
