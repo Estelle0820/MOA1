@@ -1,26 +1,8 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>jsPsych test</title>
-  <link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" />
-</head>
-<body></body>
-
-<script type="module">
-  // show any error on screen
-  window.onerror = (m, s, l, c, e) => { document.body.innerHTML = "<pre>"+m+"\n"+(e&&e.stack||"")+"</pre>"; };
-
-  // ES module imports (NO script src tags anywhere)
-  import { initJsPsych } from "https://unpkg.com/jspsych@7.3.4?module";
-  import jsPsychInstructions from "https://unpkg.com/@jspsych/plugin-instructions@1.1.4?module";
-
-  const jsPsych = initJsPsych();
-  const intro = {
-    type: jsPsychInstructions,
-    pages: ["<p><strong>jsPsych loaded!</strong> If you see this, modules work.</p>"],
-    show_clickable_nav: true
-  };
-  jsPsych.run([intro]);
-</script>
-</html>
+<!doctype html>
+<meta charset="utf-8">
+<title>GitHub Pages OK</title>
+<style>body{font:16px system-ui, sans-serif; max-width:700px; margin:40px auto}</style>
+<h1>GitHub Pages is serving HTML ✔</h1>
+<p>If you can see this text, your site is live.</p>
+<p>Current time: <span id="t"></span></p>
+<script>document.getElementById('t').textContent=new Date().toISOString();</script>
