@@ -2,20 +2,24 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Single Trial Demo</title>
+  <title>Single Trial Demo (Centered)</title>
   <link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" />
   <style>
-    body { max-width: 960px; margin: 40px auto; font-family: system-ui, sans-serif; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
-    .cell { text-align: center; }
-    .cell .tag { font-weight: 700; margin: 4px 0 8px; }
-    video { width: 100%; max-width: 420px; background:#000; border-radius: 10px; }
+    /* Center the jsPsych stage */
+    .jspsych-content-wrapper { display:flex; justify-content:center; }
+    .jspsych-content { max-width: 960px !important; margin: 40px auto !important; }
+    body { font-family: system-ui, sans-serif; }
+    .center { text-align:center; }
+    video { display:block; margin: 0 auto; border-radius: 10px; background:#000; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; align-items:start; }
+    .cell { text-align:center; }
+    .cell .tag { font-weight:700; margin:4px 0 8px; }
   </style>
 </head>
 <body></body>
 
 <script type="module">
-  // print any error on screen
+  // show any error on screen
   window.onerror = (m, s, l, c, e) =>
     { document.body.innerHTML = "<pre>"+m+"\n"+(e&&e.stack||"")+"</pre>"; };
 
@@ -23,30 +27,32 @@
   import jsPsychHtmlSliderResponse from "https://esm.sh/@jspsych/plugin-html-slider-response";
   import jsPsychHtmlButtonResponse from "https://esm.sh/@jspsych/plugin-html-button-response";
 
-  // ---- ONE stimulus (change the filename if needed) ----
+  // ---- ONE stimulus (change filename if needed; must match case exactly) ----
   const T = {
     scene: "car",
     direction: "LtoR",
     moa: "3s",
-    stimulus: "videos/car_LtoR_3s.mp4"  // <- update if your filename differs
+    stimulus: "videos/car_LtoR_3s.mp4"   // <-- update if your file name differs
   };
 
   const jsPsych = initJsPsych({
     on_finish: () => jsPsych.data.get().localSave('csv','single_trial_demo.csv')
   });
 
-  // 1) Video (Play + Continue anytime)
+  // 1) Video (Play + big Continue button always visible)
   function viewClip(t){
     const html = `
-      <p><em>Click Play to watch the clip, then press Continue.</em></p>
-      <video id="mainvid" width="900" controls playsinline>
-        <source src="${t.stimulus}" type="video/mp4">
-      </video>
+      <div class="center">
+        <p><em>Click Play to watch the clip.</em></p>
+        <video id="mainvid" width="900" controls playsinline>
+          <source src="${t.stimulus}" type="video/mp4">
+        </video>
+      </div>
     `;
     return {
       type: jsPsychHtmlButtonResponse,
       stimulus: html,
-      choices: ['Continue'],              // always enabled so you can proceed
+      choices: ['Continue →'],          // always enabled so you can proceed
       data: { phase:"view", ...t }
     };
   }
@@ -55,7 +61,7 @@
   function prefSlider(t){
     return {
       type: jsPsychHtmlSliderResponse,
-      stimulus: '<p><strong>How much did you like the clip you just watched?</strong></p>',
+      stimulus: '<div class="center"><p><strong>How much did you like the clip you just watched?</strong></p></div>',
       min: 0, max: 4, step: 0.01, slider_start: 2,
       labels: ['0 (not at all)','4 (very much)'],
       require_movement: true,
@@ -67,7 +73,7 @@
   function simultaneitySlider(t){
     return {
       type: jsPsychHtmlSliderResponse,
-      stimulus: '<p><strong>How together were the visual & auditory onsets?</strong></p>',
+      stimulus: '<div class="center"><p><strong>How together were the visual & auditory onsets?</strong></p></div>',
       min: 0, max: 4, step: 0.01, slider_start: 2,
       labels: ['0 (not together)','4 (exactly together)'],
       require_movement: true,
@@ -92,11 +98,11 @@
         ${opts.map((o,i)=>`
           <div class="cell">
             <div class="tag">${letters[i]}</div>
-            <video id="opt${i}" src="${o.src}" muted loop playsinline></video>
+            <video id="opt${i}" src="${o.src}" muted loop playsinline width="420"></video>
           </div>
         `).join('')}
       </div>
-      <p><em>Which clip matches the one you just watched (same direction & speed)?</em></p>
+      <div class="center"><p><em>Which clip matches the one you just watched (same direction & speed)?</em></p></div>
     `;
 
     return {
@@ -104,10 +110,10 @@
       stimulus: gridHTML,
       choices: letters,
       on_load: () => {
-        // muted autoplay is allowed; set speed foils at 0.7×
+        // muted autoplay allowed; set speed foils to 0.7×
         opts.forEach((o,i)=>{
           const v = document.getElementById(`opt${i}`);
-          v.playbackRate = o.rate;                // 1.0 or 0.7
+          v.playbackRate = o.rate;             // 1.0 or 0.7
           v.addEventListener('canplay', ()=> v.play(), { once:true });
           v.load();
         });
@@ -119,20 +125,22 @@
         correct_index
       },
       on_finish: d => {
-        d.choice_index = d.response;              // 0..3
+        d.choice_index = d.response;           // 0..3
         d.is_correct   = (d.response === correct_index);
       }
     };
   }
 
+  // Build timeline
   const timeline = [
     viewClip(T),
     prefSlider(T),
     simultaneitySlider(T),
     memoryTrial(T),
-    { type: jsPsychHtmlButtonResponse, stimulus: "<p>Thanks! Data saved.</p>", choices:["Finish"] }
+    { type: jsPsychHtmlButtonResponse, stimulus: '<div class="center"><p>Thanks! Data saved.</p></div>', choices: ['Finish'] }
   ];
 
   jsPsych.run(timeline);
 </script>
 </html>
+
