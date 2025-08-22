@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Single Trial Demo (Speed-locked)</title>
+  <title>Single Trial Demo (Requested Scales)</title>
   <link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" />
   <style>
     .jspsych-content-wrapper { display:flex; justify-content:center; }
@@ -19,7 +19,7 @@
 <body></body>
 
 <script type="module">
-  // Show any JS error on screen so the page is never blank
+  // Show any JS error on screen
   window.onerror = (m, s, l, c, e) => {
     document.body.innerHTML = "<pre>"+m+"\n"+(e && e.stack || "")+"</pre>";
   };
@@ -33,14 +33,14 @@
     scene: "car",
     direction: "LtoR",
     moa: "3s",
-    stimulus: "videos/car_LtoR_3s.mp4"   // <-- change to your file if different
+    stimulus: "videos/car_LtoR_3s.mp4"   // <-- change to your file if different (case-sensitive)
   };
 
   const jsPsych = initJsPsych({
     on_finish: () => jsPsych.data.get().localSave('csv','single_trial_demo.csv')
   });
 
-  // 1) Video (Play + big Continue button always visible)
+  // 1) Video (Play + big Continue button)
   function viewClip(t){
     const html = `
       <div class="center">
@@ -58,53 +58,42 @@
     };
   }
 
-  // 2a) Slider: Preference 0–4
+  // 2a) Preference slider (continuous), labels at 0 / 2 / 4
   function prefSlider(t){
     return {
       type: jsPsychHtmlSliderResponse,
       stimulus: '<div class="center"><p><strong>How much did you like the clip you just watched?</strong></p></div>',
       min: 0, max: 4, step: 0.01, slider_start: 2,
-      labels: ['0 (not at all)','4 (very much)'],
+      labels: ['0<br>Not at all','2<br>Neutral','4<br>Very much'],
       require_movement: true,
       data: { phase:"preference", ...t }
     };
   }
 
-  // 2b) Slider: Perceived simultaneity 0–4
-  function simultaneitySlider(t){
+  // 2b) Simultaneity slider (discrete 0–4) with your exact wording
+  function simultaneityDiscrete(t){
     return {
       type: jsPsychHtmlSliderResponse,
-      stimulus: '<div class="center"><p><strong>How together were the visual & auditory onsets?</strong></p></div>',
-      min: 0, max: 4, step: 0.01, slider_start: 2,
-      labels: ['0 (not together)','4 (exactly together)'],
+      stimulus: '<div class="center"><p><strong>To what extent did the visual and auditory motion begin at the same time?</strong></p><p style="font-size:14px;color:#555">(0 = very far apart, 2 = somewhat apart, 4 = exactly the same time)</p></div>',
+      min: 0, max: 4, step: 1, slider_start: 2,      // <-- integers only
+      labels: ['0<br>Very far apart','1','2<br>Somewhat apart','3','4<br>Exactly the same time'],
       require_movement: true,
-      data: { phase:"simultaneity_slider", ...t }
+      data: { phase:"simultaneity_discrete", ...t }
     };
   }
 
-  // Helper: try a pre-rendered slow file if present; else return original
+  // Helper: prefer a pre-rendered slow file if present; else fall back to rate locking
   function slowFilePath(src){
-    // e.g., videos/car_LtoR_3s.mp4 -> videos/car_LtoR_3s_slow.mp4
     const dot = src.lastIndexOf('.');
     return dot === -1 ? src + "_slow" : src.slice(0, dot) + "_slow" + src.slice(dot);
   }
 
-  // Aggressively lock a video's playback rate so 0.7× sticks
+  // Aggressively lock playback rate so 0.7× sticks
   function lockRate(video, rate){
-    const apply = () => {
-      video.defaultPlaybackRate = rate;
-      video.playbackRate = rate;
-    };
+    const apply = () => { video.defaultPlaybackRate = rate; video.playbackRate = rate; };
     apply();
-
-    // Re-apply for ~2 seconds to squash resets on some browsers
     const end = performance.now() + 2000;
-    (function tick(){
-      apply();
-      if (performance.now() < end) requestAnimationFrame(tick);
-    })();
-
-    // Keep re-applying on play/ratechange/seek/loop
+    (function tick(){ apply(); if (performance.now() < end) requestAnimationFrame(tick); })();
     const reapply = () => apply();
     video.addEventListener('play', reapply);
     video.addEventListener('ratechange', reapply);
@@ -151,20 +140,13 @@
           v.muted = true; v.playsInline = true;
 
           if (o.rate === 0.7) {
-            // If the slow file fails, swap to original source and enforce 0.7×
-            v.addEventListener('error', () => {
-              s.src = o.src; v.load();
-            }, { once:true });
-
+            v.addEventListener('error', () => { s.src = o.src; v.load(); }, { once:true });
             v.addEventListener('loadedmetadata', () => {
-              // If we ended up on original file, lock rate; if slow file exists, keep 1.0×
-              // Detect by filename containing "_slow"
-              const isSlowFile = s.src.includes("_slow");
-              if (!isSlowFile) lockRate(v, 0.7);
+              const isSlow = s.src.includes("_slow");
+              if (!isSlow) lockRate(v, 0.7);
               v.play().catch(()=>{});
             }, { once:true });
           } else {
-            // 1.0× options
             v.addEventListener('loadedmetadata', () => {
               v.defaultPlaybackRate = 1.0; v.playbackRate = 1.0;
               v.play().catch(()=>{});
@@ -189,7 +171,7 @@
   const timeline = [
     viewClip(T),
     prefSlider(T),
-    simultaneitySlider(T),
+    simultaneityDiscrete(T),
     memoryTrial(T),
     { type: jsPsychHtmlButtonResponse, stimulus: '<div class="center"><p>Thanks! Data saved.</p></div>', choices: ['Finish'] }
   ];
@@ -197,6 +179,7 @@
   jsPsych.run(timeline);
 </script>
 </html>
+
 
 
 
