@@ -2,195 +2,25 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>MOA Study</title>
-  <!-- CSS only -->
+  <title>jsPsych test</title>
   <link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" />
-  <style>
-    body { max-width: 960px; margin: 40px auto; font-family: system-ui, sans-serif; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
-    .cell { text-align: center; }
-    .cell .tag { font-weight: 700; margin: 4px 0 8px; }
-    video { width: 100%; max-width: 420px; background:#000; border-radius: 10px; }
-  </style>
 </head>
 <body></body>
 
-<!-- Everything loads as ES modules so we avoid global script issues -->
 <script type="module">
-  // Print any error on-screen so we never show a blank page
+  // show any error on screen
   window.onerror = (m, s, l, c, e) => { document.body.innerHTML = "<pre>"+m+"\n"+(e&&e.stack||"")+"</pre>"; };
 
-  // jsPsych core + plugins (module builds from unpkg)
+  // ES module imports (NO script src tags anywhere)
   import { initJsPsych } from "https://unpkg.com/jspsych@7.3.4?module";
-  import jsPsychPreload from "https://unpkg.com/@jspsych/plugin-preload@1.1.3?module";
   import jsPsychInstructions from "https://unpkg.com/@jspsych/plugin-instructions@1.1.4?module";
-  import jsPsychVideoKeyboardResponse from "https://unpkg.com/@jspsych/plugin-video-keyboard-response@1.1.4?module";
-  import jsPsychHtmlSliderResponse from "https://unpkg.com/@jspsych/plugin-html-slider-response@1.1.4?module";
-  import jsPsychHtmlButtonResponse from "https://unpkg.com/@jspsych/plugin-html-button-response@1.1.4?module";
 
-  /*** Factors & stimuli ***/
-  const scenes = ["car","dog","horse","penguin","plane","roomba"];
-  const dirs   = ["LtoR","RtoL"];
-  const moas   = ["0s","3s","7s"]; // motion-onset asynchrony; used to select the same clip variants
-
-  function makeTrials(){
-    const t=[];
-    for (const s of scenes) for (const d of dirs) for (const m of moas) {
-      t.push({ scene:s, direction:d, moa:m, stimulus:`videos/${s}_${d}_${m}.mp4` });
-    }
-    return t;
-  }
-
-  // Shuffle with constraint: no adjacent trials with the SAME (scene, direction)
-  function shuffleWithConstraint(items){
-    const n=items.length, used=new Array(n).fill(false), order=[];
-    const conflict = Array.from({length:n},()=>Array(n).fill(false));
-    for (let i=0;i<n;i++) for (let j=0;j<n;j++) if (i!==j)
-      conflict[i][j] = (items[i].scene===items[j].scene) && (items[i].direction===items[j].direction);
-    const idx=[...Array(n).keys()];
-    function sh(a){ for(let i=a.length-1;i>0;i--){ const k=Math.floor(Math.random()*(i+1)); [a[i],a[k]]=[a[k],a[i]] } return a; }
-    function bt(pos){
-      if (pos===n) return true;
-      sh(idx);
-      for (const i of idx){
-        if (used[i]) continue;
-        if (pos>0 && conflict[order[pos-1]][i]) continue;
-        used[i]=true; order.push(i);
-        if (bt(pos+1)) return true;
-        order.pop(); used[i]=false;
-      }
-      return false;
-    }
-    if (!bt(0)) throw new Error("ordering failed");
-    return order.map(i=>items[i]);
-  }
-
-  const TRIALS = shuffleWithConstraint(makeTrials());
-
-  /*** jsPsych init ***/
-  const jsPsych = initJsPsych({
-    on_finish: () => jsPsych.data.get().localSave('csv','moa_study_data.csv')
-  });
-
-  /*** Preload all 36 videos ***/
-  const preload = {
-    type: jsPsychPreload,
-    auto_preload: false,
-    video: TRIALS.map(t => t.stimulus),
-    message: '<p><strong>Loading videos…</strong></p><p>This may take a minute on first load.</p>',
-    continue_after_error: true,
-    show_progress_bar: true
-  };
-
-  /*** Instructions ***/
+  const jsPsych = initJsPsych();
   const intro = {
     type: jsPsychInstructions,
-    pages: [
-      `<p><strong>Welcome!</strong></p>
-       <p>You will watch 36 short clips. After each clip you will:</p>
-       <ol style="text-align:left; display:inline-block">
-         <li>Rate how much you liked it (0–4 continuous scale).</li>
-         <li>Answer whether visual & auditory motion started together (Yes/No).</li>
-         <li>Pick the matching trajectory from four videos (same direction & speed).</li>
-       </ol>
-       <p>Please use headphones and pay attention.</p>`
-    ],
+    pages: ["<p><strong>jsPsych loaded!</strong> If you see this, modules work.</p>"],
     show_clickable_nav: true
   };
-
-  /*** 1) View the 14s video ***/
-  function viewClip(t){
-    return {
-      type: jsPsychVideoKeyboardResponse,
-      stimulus: [t.stimulus],
-      choices: "NO_KEYS",
-      trial_ends_after_video: true, // ends when the (14s) video ends
-      width: 900,                    // scale as you like
-      data: { phase:"view", ...t }
-    };
-  }
-
-  /*** 2) Preference: continuous 0–4 slider ***/
-  function prefRating(t){
-    return {
-      type: jsPsychHtmlSliderResponse,
-      stimulus: '<p><strong>How much did you like the clip you just watched?</strong></p>',
-      min: 0, max: 4, step: 0.01, slider_start: 2,
-      labels: ['0 (not at all)','4 (very much)'],
-      require_movement: true,
-      data: { phase:"preference", ...t }
-    };
-  }
-
-  /*** 3) Simultaneity judgment: Yes / No ***/
-  function simultaneity(t){
-    return {
-      type: jsPsychHtmlButtonResponse,
-      stimulus: '<p><strong>Did the visual and auditory motion start together?</strong></p>',
-      choices: ['Yes','No'],
-      data: { phase:"simultaneity", ...t }
-    };
-  }
-
-  /*** 4) Trajectory memory with 4 video options
-       - correct: same direction, speed 1.0
-       - wrong-dir: opposite direction, speed 1.0
-       - wrong-speed: same dir, speed 0.7
-       - both-wrong: opposite dir, speed 0.7
-       (All options muted, autoplay, loop) ***/
-  function memoryTrial(t){
-    const flipped = t.direction === "LtoR" ? "RtoL" : "LtoR";
-    const correct      = { src:`videos/${t.scene}_${t.direction}_${t.moa}.mp4`, rate:1.0, tag:'correct' };
-    const wrongDir     = { src:`videos/${t.scene}_${flipped}_${t.moa}.mp4`,     rate:1.0, tag:'wrong_dir' };
-    const wrongSpeed   = { src: correct.src,                                    rate:0.7, tag:'wrong_speed' };
-    const bothWrong    = { src: wrongDir.src,                                   rate:0.7, tag:'both_wrong' };
-
-    let opts = jsPsych.randomization.shuffle([correct, wrongDir, wrongSpeed, bothWrong]);
-    const correct_index = opts.findIndex(o => o.tag === 'correct');
-
-    const letters = ['A','B','C','D'];
-    const gridHTML = `
-      <div class="grid">
-        ${opts.map((o,i)=>`
-          <div class="cell">
-            <div class="tag">${letters[i]}</div>
-            <video id="opt${i}" src="${o.src}" muted loop playsinline></video>
-          </div>
-        `).join('')}
-      </div>
-      <p><em>Which clip matches the one you just watched (same direction & speed)?</em></p>
-    `;
-
-    return {
-      type: jsPsychHtmlButtonResponse,
-      stimulus: gridHTML,
-      choices: letters,
-      on_load: () => {
-        // set playback rates & autoplay once ready
-        opts.forEach((o,i)=>{
-          const v = document.getElementById(`opt${i}`);
-          v.addEventListener('canplay', ()=> v.play(), { once:true });
-          v.playbackRate = o.rate;  // 1.0 or 0.7
-          v.load();
-        });
-      },
-      data: {
-        phase:"memory",
-        ...t,
-        memory_option_order: opts.map(o=>o.tag).join(','), // e.g., "wrong_speed,correct,both_wrong,wrong_dir"
-        correct_index
-      },
-      on_finish: (d) => {
-        d.choice_index = d.response;           // 0..3
-        d.is_correct   = (d.response === correct_index);
-      }
-    };
-  }
-
-  /*** Build the full block: view -> preference -> simultaneity -> memory ***/
-  const block = TRIALS.flatMap(t => [ viewClip(t), prefRating(t), simultaneity(t), memoryTrial(t) ]);
-
-  /*** Run ***/
-  jsPsych.run([preload, intro, ...block]);
+  jsPsych.run([intro]);
 </script>
 </html>
