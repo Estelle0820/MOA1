@@ -89,22 +89,34 @@
   });
 
   // 1) Video (participant clicks Play, then Continue)
-  function viewClip(t){
-    const html = `
-      <div class="center">
-        <p><em>Click Play to watch the clip.</em></p>
-        <video id="mainvid" width="900" controls playsinline>
-          <source src="${t.stimulus}" type="video/mp4">
-        </video>
-      </div>
-    `;
-    return {
-      type: jsPsychHtmlButtonResponse,
-      stimulus: html,
-      choices: ['Continue →'],
-      data: { phase:"view", ...t }
-    };
-  }
+function viewClip(t){
+  const html = `
+    <div class="center">
+      <p id="watchmsg"><em>Please watch the full clip. The Continue button will appear when it ends.</em></p>
+      <video id="mainvid" width="900" controls playsinline>
+        <source src="${t.stimulus}" type="video/mp4">
+      </video>
+    </div>
+  `;
+  return {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: html,
+    choices: ['Continue →'],
+    // render a disabled button first
+    button_html: '<button class="jspsych-btn" id="contbtn" disabled>%choice%</button>',
+    data: { phase:"view", ...t },
+    on_load: () => {
+      const v = document.getElementById('mainvid');
+      const btn = document.getElementById('contbtn');
+      const msg = document.getElementById('watchmsg');
+      // when the clip fully ends, enable the button
+      v.addEventListener('ended', () => {
+        btn.disabled = false;
+        msg.textContent = 'Thanks! You can continue.';
+      }, { once:true });
+    }
+  };
+}
 
   // 2a) Preference: discrete 0–4 with text only under 0,2,4
   function prefSlider(t){
