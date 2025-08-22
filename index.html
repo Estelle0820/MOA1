@@ -88,7 +88,7 @@
     }
   });
 
-  // 1) Video (participant clicks Play, then Continue)
+// 1) Video (participant clicks Play, then Continue)
 function viewClip(t){
   const html = `
     <div class="center">
@@ -110,25 +110,50 @@ function viewClip(t){
       const btn = document.getElementById('contbtn');
       const msg = document.getElementById('watchmsg');
 
+      let revealed = false;
+      let iv = null;
+
       const show = () => {
-        if (btn.style.display === 'none') {
-          btn.style.display = 'inline-block';
-          msg.textContent = 'Thanks! You can continue.';
-        }
+        if (revealed) return;
+        revealed = true;
+        btn.style.display = 'inline-block';
+        msg.textContent = 'Thanks! You can continue.';
+        // cleanup
+        ['ended','timeupdate','pause','seeking','canplay','loadedmetadata'].forEach(ev => {
+          v.removeEventListener(ev, detector, true);
+        });
+        if (iv) { clearInterval(iv); iv = null; }
       };
 
-      // Primary: fire when the video ends
-      v.addEventListener('ended', show, { once:true });
+      // Condition that counts as "finished"
+      const atEnd = () => {
+        const dur = v.duration;
+        const t   = v.currentTime || 0;
+        // handle NaN durations, short clips, scrubs
+        return Number.isFinite(dur) && dur > 0 && (dur - t) <= 0.1;
+      };
 
-      // Watchdog: if metadata is weird and 'ended' doesn't fire,
-      // reveal when we reach the last 0.1s.
-      let nearEndShown = false;
-      v.addEventListener('timeupdate', () => {
-        if (!nearEndShown && v.duration && v.currentTime >= v.duration - 0.1) {
-          nearEndShown = true;
-          show();
-        }
-      });
+      // A single detector bound to multiple events
+      const detector = () => {
+        if (!revealed && (v.ended || atEnd() || (v.paused && atEnd()))) show();
+      };
+
+      // Start after we know duration/currentTime are meaningful
+      const arm = () => {
+        ['ended','timeupdate','pause','seeking','canplay'].forEach(ev => {
+          v.addEventListener(ev, detector, { passive:true });
+        });
+        // watchdog: catch odd cases where events don’t fire
+        iv = setInterval(detector, 250);
+        // immediate check (e.g., if user had already finished)
+        detector();
+      };
+
+      if (v.readyState >= 1) {  // HAVE_METADATA
+        arm();
+      } else {
+        v.addEventListener('loadedmetadata', arm, { once:true });
+      }
     }
   };
 }
