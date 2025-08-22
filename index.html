@@ -3,14 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <title>MOA Study</title>
+  <!-- Only the CSS in <head>; no script tags here -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspsych@7.3.4/css/jspsych.css" />
   <style>body{max-width:900px;margin:40px auto;font-family:sans-serif}</style>
 </head>
 <body></body>
 
-<!-- Use ES modules so we don't rely on window globals -->
+<!-- Everything loads via ES modules -->
 <script type="module">
-  // show any error on screen
+  // Show any error on-screen so the page never looks blank
   window.onerror = (m, s, l, c, e) => { document.body.innerHTML = "<pre>"+m+"\n"+(e&&e.stack||"")+"</pre>"; };
 
   // Import jsPsych core + plugins (module builds)
@@ -26,45 +27,38 @@
 
   function makeTrials(){
     const t=[];
-    for (const s of scenes) for (const d of dirs) for (const m of moas) {
-      t.push({ scene:s, direction:d, moa:m, stimulus:`videos/${s}_${d}_${m}.mp4` });
+    for(const s of scenes) for(const d of dirs) for(const m of moas){
+      t.push({scene:s, direction:d, moa:m, stimulus:`videos/${s}_${d}_${m}.mp4`});
     }
     return t;
   }
 
   function shuffleWithConstraint(items){
-    const n = items.length, used = new Array(n).fill(false), order = [];
-    const conflict = Array.from({length:n}, () => Array(n).fill(false));
-    for (let i=0;i<n;i++) for (let j=0;j<n;j++) if (i!==j)
-      conflict[i][j] = (items[i].scene===items[j].scene) && (items[i].direction===items[j].direction);
-    const idx = [...Array(n).keys()];
-    function sh(a){ for(let i=a.length-1;i>0;i--){ const k=Math.floor(Math.random()*(i+1)); [a[i],a[k]]=[a[k],a[i]] } return a; }
-    function bt(pos){
-      if (pos===n) return true;
-      sh(idx);
-      for (const i of idx){
-        if (used[i]) continue;
-        if (pos>0 && conflict[order[pos-1]][i]) continue;
-        used[i]=true; order.push(i);
-        if (bt(pos+1)) return true;
-        order.pop(); used[i]=false;
-      }
+    const n=items.length, used=new Array(n).fill(false), order=[];
+    const conflict=Array.from({length:n},()=>Array(n).fill(false));
+    for(let i=0;i<n;i++) for(let j=0;j<n;j++) if(i!==j)
+      conflict[i][j]=(items[i].scene===items[j].scene)&&(items[i].direction===items[j].direction);
+    const idx=[...Array(n).keys()];
+    function sh(a){for(let i=a.length-1;i>0;i--){const k=Math.floor(Math.random()*(i+1));[a[i],a[k]]=[a[k],a[i]]}return a}
+    function bt(pos){ if(pos===n) return true; sh(idx);
+      for(const i of idx){ if(used[i]) continue; if(pos>0 && conflict[order[pos-1]][i]) continue;
+        used[i]=true; order.push(i); if(bt(pos+1)) return true; order.pop(); used[i]=false; }
       return false;
     }
-    if (!bt(0)) throw new Error("ordering failed");
-    return order.map(i => items[i]);
+    if(!bt(0)) throw new Error("ordering failed");
+    return order.map(i=>items[i]);
   }
 
   const TRIALS = shuffleWithConstraint(makeTrials());
 
   const jsPsych = initJsPsych({
-    on_finish: () => { jsPsych.data.get().localSave('csv','moa_study_data.csv'); }
+    on_finish: () => jsPsych.data.get().localSave('csv','moa_study_data.csv')
   });
 
   const preload = {
     type: jsPsychPreload,
     auto_preload: false,
-    video: TRIALS.map(t => t.stimulus),
+    video: TRIALS.map(t=>t.stimulus),
     message: '<p><strong>Loading videos…</strong></p><p>This may take a minute on first load.</p>',
     continue_after_error: true,
     show_progress_bar: true
@@ -87,13 +81,13 @@
     choices: "NO_KEYS",
     trial_ends_after_video: true,
     width: 800,
-    data: { phase:"view", ...t }
+    data: {phase:"view", ...t}
   };}
 
   function rateLiking(t){ return {
     type: jsPsychSurveyLikert,
-    questions: [{ prompt:"How much did you like that clip?", labels:["1","2","3","4","5","6","7"], required:true }],
-    data: { phase:"liking", ...t }
+    questions: [{prompt:"How much did you like that clip?", labels:["1","2","3","4","5","6","7"], required:true}],
+    data: {phase:"liking", ...t}
   };}
 
   const block = TRIALS.flatMap(t => [viewClip(t), rateLiking(t)]);
