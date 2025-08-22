@@ -5,16 +5,35 @@
   <title>Single Trial Demo (Discrete 0–4 → Google Sheets)</title>
   <link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" />
   <style>
-    .jspsych-content-wrapper { display:flex; justify-content:center; }
-    .jspsych-content { max-width: 960px !important; margin: 40px auto !important; }
-    body { font-family: system-ui, sans-serif; background:#fafafa; }
+    .jspsych-content-wrapper {
+      display:flex;
+      justify-content:center;
+    }
+    .jspsych-content {
+      max-width: 960px !important;
+      margin: 40px auto !important;
+    }
+    body {
+      font-family: system-ui, sans-serif;
+      background:#fafafa;
+    }
     .center { text-align:center; }
-    video { display:block; margin: 0 auto; border-radius: 10px; background:#000; }
-    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; align-items:start; }
+    video {
+      display:block;
+      margin: 0 auto;
+      border-radius: 10px;
+      background:#000;
+    }
+    .grid {
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:16px;
+      align-items:start;
+    }
     .cell { text-align:center; }
     .tag { font-weight:700; margin:6px 0 8px; }
 
-    /* Ensure jsPsych slider labels render clearly under ticks */
+    /* Slider labels: force all 5 (0–4) to show and line up */
     .jspsych-slider-container .jspsych-slider-labels {
       display: flex !important;
       justify-content: space-between !important;
@@ -28,6 +47,16 @@
     .jspsych-slider-container .jspsych-slider-label {
       text-align: center !important;
       flex: 0 0 auto !important;
+    }
+
+    /* Hide the video seek bar + time displays (leave play/pause) */
+    video::-webkit-media-controls-timeline,
+    video::-webkit-media-controls-current-time-display,
+    video::-webkit-media-controls-time-remaining-display {
+      display: none !important;
+    }
+    video::-moz-media-controls-seekbar {
+      display: none !important;
     }
   </style>
 </head>
