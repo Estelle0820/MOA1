@@ -281,19 +281,63 @@ function viewClip(t){
     };
   }
 
-  const timeline = [
-    viewClip(T),
-    prefSlider(T),
-    simultaneitySlider(T),
-    memoryTrial(T),
-    {
-      type: jsPsychHtmlButtonResponse,
-      stimulus: '<div class="center"><p>Thanks! Data saved.</p></div>',
-      choices: ['Finish']
-    }
-  ];
+const scenes     = ["car","bike","dog","cat","plane","boat"];
+const directions = ["LtoR","RtoL"];
+const moas       = ["0s","3s","7s"];
 
-  jsPsych.run(timeline);
+// Make all 36 combinations
+let allTrials = [];
+scenes.forEach(scene=>{
+  directions.forEach(dir=>{
+    moas.forEach(moa=>{
+      allTrials.push({
+        scene: scene,
+        direction: dir,
+        moa: moa,
+        stimulus: `videos/${scene}_${dir}_${moa}.mp4`
+      });
+    });
+  });
+});
+
+// Shuffle but never two identical scene+direction in a row
+function shuffleWithConstraint(trials){
+  let shuffled = jsPsych.randomization.shuffle(trials);
+  let attempts = 0;
+  while(attempts < 1000){
+    let ok = true;
+    for(let i=1;i<shuffled.length;i++){
+      if(shuffled[i-1].scene === shuffled[i].scene &&
+         shuffled[i-1].direction === shuffled[i].direction){
+        ok = false; break;
+      }
+    }
+    if(ok) return shuffled;
+    shuffled = jsPsych.randomization.shuffle(trials);
+    attempts++;
+  }
+  return shuffled; // fallback
+}
+const constrained = shuffleWithConstraint(allTrials);
+
+// Build full timeline: 36 × (video→pref→sim→memory)
+let fullTimeline = [];
+constrained.forEach(T => {
+  fullTimeline.push(viewClip(T));
+  fullTimeline.push(prefSlider(T));
+  fullTimeline.push(simultaneitySlider(T));
+  fullTimeline.push(memoryTrial(T));
+});
+
+// Add final end screen
+fullTimeline.push({
+  type: jsPsychHtmlButtonResponse,
+  stimulus: '<div class="center"><p>Thanks! All trials complete. Data saved.</p></div>',
+  choices: ['Finish']
+});
+
+// Run it
+jsPsych.run(fullTimeline);
 </script>
 </html>
 
