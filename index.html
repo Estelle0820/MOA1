@@ -8,7 +8,7 @@
 <body></body>
 
 <script type="module">
-  // print errors on screen so it's never blank
+  // show errors on screen so it's never blank
   window.onerror = (m, s, l, c, e) => { document.body.innerHTML = "<pre>"+m+"\n"+(e&&e.stack||"")+"</pre>"; };
 
   // ✅ use esm.sh (not unpkg/jsdelivr)
