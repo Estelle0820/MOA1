@@ -98,25 +98,39 @@ function viewClip(t){
       </video>
     </div>
   `;
+  let skipped = false, playedSec = 0, lastTime = 0;
+
   return {
     type: jsPsychHtmlButtonResponse,
     stimulus: html,
     choices: ['Continue →'],
-    // render a disabled button first
     button_html: '<button class="jspsych-btn" id="contbtn" disabled>%choice%</button>',
     data: { phase:"view", ...t },
     on_load: () => {
       const v = document.getElementById('mainvid');
       const btn = document.getElementById('contbtn');
       const msg = document.getElementById('watchmsg');
-      // when the clip fully ends, enable the button
+
+      v.addEventListener('seeking', () => { if (v.currentTime > lastTime + 0.25) skipped = true; });
+      v.addEventListener('timeupdate', () => { 
+        if (v.currentTime > lastTime) playedSec += (v.currentTime - lastTime);
+        lastTime = v.currentTime;
+      });
+
       v.addEventListener('ended', () => {
         btn.disabled = false;
-        msg.textContent = 'Thanks! You can continue.';
+        msg.textContent = skipped
+          ? 'You may continue (note: seeking detected).'
+          : 'Thanks! You can continue.';
       }, { once:true });
+    },
+    on_finish: d => {
+      d.view_skipped = skipped;
+      d.view_time_played = Math.round(playedSec*1000); // ms (approx)
     }
   };
 }
+
 
   // 2a) Preference: discrete 0–4 with text only under 0,2,4
   function prefSlider(t){
