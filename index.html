@@ -121,8 +121,9 @@
 function viewClip(t){
   const html = `
     <div class="center">
-      <p id="watchmsg"><em>Please clip play to watch the full clip. The Continue button will appear when it ends.</em></p>
-      <video id="mainvid" width="900" controls playsinline preload="metadata">
+      <p id="watchmsg"><em>Click Play to watch the full clip. The Continue button will appear when it ends.</em></p>
+      <video id="mainvid" width="900" controls playsinline preload="metadata"
+             controlslist="nodownload noplaybackrate noremoteplayback">
         <source src="${t.stimulus}" type="video/mp4">
       </video>
       <div id="btnbox"></div>
@@ -138,21 +139,60 @@ function viewClip(t){
       const box = document.getElementById('btnbox');
       const msg = document.getElementById('watchmsg');
 
-      const show = () => {
-        if (!box.hasChildNodes()) {
-          msg.textContent = 'Thanks! You can continue.';
-          const btn = document.createElement('button');
-          btn.className = 'jspsych-btn';
-          btn.textContent = 'Continue →';
-          btn.onclick = () => jsPsych.finishTrial({ phase:"view", ...t });
-          box.appendChild(btn);
+      let revealed = false;
+      let finished = false;
+      let lastTime = 0;
+
+      const showContinue = () => {
+        if (revealed) return;
+        revealed = true;
+        msg.textContent = 'Thanks! You can continue.';
+        const btn = document.createElement('button');
+        btn.className = 'jspsych-btn';
+        btn.textContent = 'Continue →';
+        btn.onclick = () => jsPsych.finishTrial({ phase:"view", ...t });
+        box.appendChild(btn);
+      };
+
+      // Block any seeking during first watch (forward or back)
+      v.addEventListener('timeupdate', () => {
+        if (Math.abs(v.currentTime - lastTime) > 0.35) {
+          v.currentTime = lastTime; // snap back if user jumped
+          return;
+        }
+        lastTime = v.currentTime;
+      });
+      v.addEventListener('seeking', () => { v.currentTime = lastTime; });
+
+      // After finishing, remove controls and block replay
+      const blockReplay = () => {
+        finished = true;
+        v.removeAttribute('controls');
+        v.addEventListener('play', () => { if (finished) { v.pause(); v.currentTime = v.duration; } });
+      };
+
+      // Robust finish detection (handles Safari not firing 'ended' sometimes)
+      const maybeFinish = () => {
+        const dur = v.duration;
+        if (Number.isFinite(dur) && dur > 0 && (dur - v.currentTime) <= 0.12) {
+          blockReplay();
+          showContinue();
         }
       };
 
-      v.addEventListener('ended', show, { once:true });
-      v.addEventListener('timeupdate', () => {
-        if (v.duration && v.currentTime >= v.duration - 0.1) show();
-      });
+      v.addEventListener('ended', () => { blockReplay(); showContinue(); }, { once:true });
+      v.addEventListener('timeupdate', maybeFinish);
+      v.addEventListener('pause',     maybeFinish);
+
+      // Initialize lastTime once metadata is ready
+      if (v.readyState < 1) {
+        v.addEventListener('loadedmetadata', () => { lastTime = 0; }, { once:true });
+      } else {
+        lastTime = 0;
+      }
+
+      // Optional: discourage saving
+      v.addEventListener('contextmenu', e => e.preventDefault());
     }
   };
 }
