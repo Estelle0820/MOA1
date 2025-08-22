@@ -2,20 +2,30 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>jsPsych test</title>
+  <title>Video test</title>
   <link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css">
 </head>
 <body></body>
 
 <script type="module">
-  // show errors on screen so it's never blank
   window.onerror = (m, s, l, c, e) => { document.body.innerHTML = "<pre>"+m+"\n"+(e&&e.stack||"")+"</pre>"; };
 
-  // ✅ use esm.sh (not unpkg/jsdelivr)
   import { initJsPsych } from "https://esm.sh/jspsych@7.3.4";
-  import jsPsychInstructions from "https://esm.sh/@jspsych/plugin-instructions@1.1.4";
+  import jsPsychVideoKeyboardResponse from "https://esm.sh/@jspsych/plugin-video-keyboard-response@1.1.4";
 
-  const jsPsych = initJsPsych();
-  jsPsych.run([{ type: jsPsychInstructions, pages: ["<p><strong>jsPsych loaded!</strong></p>"], show_clickable_nav: true }]);
+  const jsPsych = initJsPsych({
+    on_finish: () => jsPsych.data.displayData()
+  });
+
+  const clip = {
+    type: jsPsychVideoKeyboardResponse,
+    stimulus: ["videos/car_LtoR_3s.mp4"],  // <-- change to an existing file if needed
+    choices: "NO_KEYS",
+    trial_ends_after_video: true,
+    width: 900
+  };
+
+  jsPsych.run([clip]);
 </script>
 </html>
+
