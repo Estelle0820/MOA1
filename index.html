@@ -93,40 +93,42 @@ function viewClip(t){
   const html = `
     <div class="center">
       <p id="watchmsg"><em>Please watch the full clip. The Continue button will appear when it ends.</em></p>
-      <video id="mainvid" width="900" controls playsinline>
+      <video id="mainvid" width="900" controls playsinline preload="metadata">
         <source src="${t.stimulus}" type="video/mp4">
       </video>
     </div>
   `;
-  let skipped = false, playedSec = 0, lastTime = 0;
-
   return {
     type: jsPsychHtmlButtonResponse,
     stimulus: html,
     choices: ['Continue →'],
-    button_html: '<button class="jspsych-btn" id="contbtn" disabled>%choice%</button>',
+    // hide button until we explicitly show it
+    button_html: '<button class="jspsych-btn" id="contbtn" style="display:none">%choice%</button>',
     data: { phase:"view", ...t },
     on_load: () => {
-      const v = document.getElementById('mainvid');
+      const v   = document.getElementById('mainvid');
       const btn = document.getElementById('contbtn');
       const msg = document.getElementById('watchmsg');
 
-      v.addEventListener('seeking', () => { if (v.currentTime > lastTime + 0.25) skipped = true; });
-      v.addEventListener('timeupdate', () => { 
-        if (v.currentTime > lastTime) playedSec += (v.currentTime - lastTime);
-        lastTime = v.currentTime;
-      });
+      const show = () => {
+        if (btn.style.display === 'none') {
+          btn.style.display = 'inline-block';
+          msg.textContent = 'Thanks! You can continue.';
+        }
+      };
 
-      v.addEventListener('ended', () => {
-        btn.disabled = false;
-        msg.textContent = skipped
-          ? 'You may continue (note: seeking detected).'
-          : 'Thanks! You can continue.';
-      }, { once:true });
-    },
-    on_finish: d => {
-      d.view_skipped = skipped;
-      d.view_time_played = Math.round(playedSec*1000); // ms (approx)
+      // Primary: fire when the video ends
+      v.addEventListener('ended', show, { once:true });
+
+      // Watchdog: if metadata is weird and 'ended' doesn't fire,
+      // reveal when we reach the last 0.1s.
+      let nearEndShown = false;
+      v.addEventListener('timeupdate', () => {
+        if (!nearEndShown && v.duration && v.currentTime >= v.duration - 0.1) {
+          nearEndShown = true;
+          show();
+        }
+      });
     }
   };
 }
