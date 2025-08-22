@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Single Trial Demo (Discrete 0–4 → Google Sheets)</title>
+  <title>MOA1</title>
   <link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" />
   <style>
     .jspsych-content-wrapper {
@@ -285,6 +285,33 @@ const scenes     = ["car","dog","horse","penguin","plane","roomba"];
 const directions = ["LtoR","RtoL"];
 const moas       = ["0s","3s","7s"];
 
+    // ---------- PRACTICE (2 trials) ----------
+  const practiceTrials = [
+    { scene:"practice1", direction:"LtoR", moa:"demo", stimulus:"videos/practice1.mp4", is_practice:true },
+    { scene:"practice2", direction:"RtoL", moa:"demo", stimulus:"videos/practice2.mp4", is_practice:true }
+  ];
+
+  let practiceTimeline = [
+    {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: '<div class="center"><h2>Practice</h2><p>You will complete 2 short practice trials to learn the task.</p></div>',
+      choices: ['Begin practice']
+    }
+  ];
+
+  practiceTrials.forEach(T => {
+    practiceTimeline.push(viewClip(T));
+    practiceTimeline.push(prefSlider(T));
+    practiceTimeline.push(simultaneitySlider(T));
+    practiceTimeline.push(memoryTrial(T));
+  });
+
+  practiceTimeline.push({
+    type: jsPsychHtmlButtonResponse,
+    stimulus: '<div class="center"><p>Practice complete. The main experiment will now begin.</p></div>',
+    choices: ['Continue']
+  });
+  
 // Make all 36 combinations
 let allTrials = [];
 scenes.forEach(scene=>{
@@ -337,7 +364,10 @@ fullTimeline.push({
 });
 
 // Run it
-jsPsych.run(fullTimeline);
+jsPsych.run([
+  ...practiceTimeline,
+  ...fullTimeline
+]);
 </script>
 </html>
 
