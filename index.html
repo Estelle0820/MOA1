@@ -1,33 +1,136 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>Video test</title>
-  <link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css">
+  <meta charset="utf-8" />
+  <title>MOA Study</title>
+  <link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" />
+  <style>
+    body { max-width: 960px; margin: 40px auto; font-family: system-ui, sans-serif; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+    .cell { text-align: center; }
+    .cell .tag { font-weight: 700; margin: 4px 0 8px; }
+    video { width: 100%; max-width: 420px; background:#000; border-radius: 10px; }
+  </style>
 </head>
 <body></body>
 
 <script type="module">
-  // show errors on screen
+  // show any JS error on screen
   window.onerror = (m, s, l, c, e) => { document.body.innerHTML = "<pre>"+m+"\n"+(e&&e.stack||"")+"</pre>"; };
 
-  import { initJsPsych } from "https://esm.sh/jspsych";                                  // no version
-  import jsPsychVideoKeyboardResponse from "https://esm.sh/@jspsych/plugin-video-keyboard-response";
-  // (if you see a 404 again, reload once more; esm.sh caches on first request)
+  // Use esm.sh (works for you) and only HTML-based plugins (no video plugin needed)
+  import { initJsPsych } from "https://esm.sh/jspsych";
+  import jsPsychInstructions from "https://esm.sh/@jspsych/plugin-instructions";
+  import jsPsychHtmlSliderResponse from "https://esm.sh/@jspsych/plugin-html-slider-response";
+  import jsPsychHtmlButtonResponse from "https://esm.sh/@jspsych/plugin-html-button-response";
 
-  const jsPsych = initJsPsych({ on_finish: () => jsPsych.data.displayData() });
+  // Factors & filenames
+  const scenes = ["car","dog","horse","penguin","plane","roomba"];
+  const dirs   = ["LtoR","RtoL"];
+  const moas   = ["0s","3s","7s"];
 
-  const clip = {
-    type: jsPsychVideoKeyboardResponse,
-    stimulus: ["videos/car_LtoR_3s.mp4"],  // change to a real filename if needed
-    choices: "NO_KEYS",
-    trial_ends_after_video: true,
-    width: 900,
-    controls: true,                         // require click so audio is allowed
-    prompt: "<p><em>Click Play to watch the clip.</em></p>"
+  function makeTrials(){
+    const t=[];
+    for (const s of scenes) for (const d of dirs) for (const m of moas) {
+      t.push({ scene:s, direction:d, moa:m, stimulus:`videos/${s}_${d}_${m}.mp4` });
+    }
+    return t;
+  }
+
+  // Shuffle with constraint: no adjacent SAME (scene, direction)
+  function shuffleWithConstraint(items){
+    const n=items.length, used=Array(n).fill(false), order=[];
+    const conflict=Array.from({length:n},()=>Array(n).fill(false));
+    for(let i=0;i<n;i++) for(let j=0;j<n;j++) if(i!==j)
+      conflict[i][j]=(items[i].scene===items[j].scene)&&(items[i].direction===items[j].direction);
+    const idx=[...Array(n).keys()];
+    function sh(a){for(let i=a.length-1;i>0;i--){const k=Math.random()* (i+1) | 0; [a[i],a[k]]=[a[k],a[i]]} return a}
+    function bt(pos){
+      if(pos===n) return true;
+      sh(idx);
+      for(const i of idx){
+        if(used[i]) continue;
+        if(pos>0 && conflict[order[pos-1]][i]) continue;
+        used[i]=true; order.push(i);
+        if(bt(pos+1)) return true;
+        order.pop(); used[i]=false;
+      }
+      return false;
+    }
+    if(!bt(0)) throw new Error("ordering failed");
+    return order.map(i=>items[i]);
+  }
+
+  const TRIALS = shuffleWithConstraint(makeTrials());
+
+  const jsPsych = initJsPsych({
+    on_finish: () => jsPsych.data.get().localSave('csv','moa_study_data.csv')
+  });
+
+  // Intro
+  const intro = {
+    type: jsPsychInstructions,
+    pages: [
+      `<p><strong>Welcome!</strong></p>
+       <p>Each trial:</p>
+       <ol style="text-align:left; display:inline-block">
+         <li>Watch a ~14s clip (click Play).</li>
+         <li>Rate liking (0–4 continuous slider).</li>
+         <li>Answer if visual & auditory motion started together (Yes/No).</li>
+         <li>Choose the matching trajectory from four videos (same direction & speed).</li>
+       </ol>
+       <p>Please use headphones.</p>`
+    ],
+    show_clickable_nav: true
   };
 
-  jsPsych.run([clip]);
-</script>
-</html>
+  // 1) Watch the clip (HTML video + Continue button enabled after 'ended')
+  function viewClip(t){
+    const html = `
+      <p><em>Click Play to watch the clip.</em></p>
+      <video id="mainvid" width="900" controls playsinline>
+        <source src="${t.stimulus}" type="video/mp4">
+      </video>
+    `;
+    return {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: html,
+      choices: ['Continue'],
+      button_html: '<button id="contbtn" class="jspsych-btn" disabled>%choice%</button>',
+      on_load: () => {
+        const v = document.getElementById('mainvid');
+        const b = document.getElementById('contbtn');
+        v.addEventListener('ended', () => { b.disabled = false; });
+      },
+      data: { phase:"view", ...t }
+    };
+  }
 
+  // 2) Preference slider 0–4 (continuous)
+  function prefRating(t){
+    return {
+      type: jsPsychHtmlSliderResponse,
+      stimulus: '<p><strong>How much did you like the clip you just watched?</strong></p>',
+      min: 0, max: 4, step: 0.01, slider_start: 2,
+      labels: ['0 (not at all)','4 (very much)'],
+      require_movement: true,
+      data: { phase:"preference", ...t }
+    };
+  }
+
+  // 3) Simultaneity Yes/No
+  function simultaneity(t){
+    return {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: '<p><strong>Did the visual and auditory motion start together?</strong></p>',
+      choices: ['Yes','No'],
+      data: { phase:"simultaneity", ...t }
+    };
+  }
+
+  // 4) Memory (4 videos; correct / wrong-dir / wrong-speed 0.7× / both wrong)
+  function memoryTrial(t){
+    const flipped   = t.direction === "LtoR" ? "RtoL" : "LtoR";
+    const correct   = { src:`videos/${t.scene}_${t.direction}_${t.moa}.mp4`, rate:1.0, tag:'correct' };
+    const wrongDir  = { src:`videos/${t.scene}_${flipped}_${t.moa}.mp4`,     rate:1.0, tag:'wrong_dir' };
+    const wrongSpd  = { src: correct.src,
