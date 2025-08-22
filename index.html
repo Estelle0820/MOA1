@@ -2,10 +2,9 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Single Trial Demo (Centered)</title>
+  <title>Single Trial Demo (Speed-locked)</title>
   <link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" />
   <style>
-    /* Center the jsPsych stage */
     .jspsych-content-wrapper { display:flex; justify-content:center; }
     .jspsych-content { max-width: 960px !important; margin: 40px auto !important; }
     body { font-family: system-ui, sans-serif; }
@@ -13,27 +12,28 @@
     video { display:block; margin: 0 auto; border-radius: 10px; background:#000; }
     .grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; align-items:start; }
     .cell { text-align:center; }
-    .cell .tag { font-weight:700; margin:4px 0 8px; }
+    .tag { font-weight:700; margin:4px 0 8px; }
+    .ratebadge { font-size:12px; color:#555; margin-top:6px; }
   </style>
 </head>
 <body></body>
 
 <script type="module">
-  // Show any error on screen (so the page is never blank)
-  window.onerror = (m, s, l, c, e) =>
-    { document.body.innerHTML = "<pre>"+m+"\n"+(e&&e.stack||"")+"</pre>"; };
+  // Show any JS error on screen so the page is never blank
+  window.onerror = (m, s, l, c, e) => {
+    document.body.innerHTML = "<pre>"+m+"\n"+(e && e.stack || "")+"</pre>";
+  };
 
-  // ESM imports (no video plugin needed)
   import { initJsPsych } from "https://esm.sh/jspsych";
   import jsPsychHtmlSliderResponse from "https://esm.sh/@jspsych/plugin-html-slider-response";
   import jsPsychHtmlButtonResponse from "https://esm.sh/@jspsych/plugin-html-button-response";
 
-  // ---- ONE stimulus (change filename if needed; must match case exactly) ----
+  // ---- ONE stimulus (edit filename if needed) ----
   const T = {
     scene: "car",
     direction: "LtoR",
     moa: "3s",
-    stimulus: "videos/car_LtoR_3s.mp4"   // <-- update if your file name differs
+    stimulus: "videos/car_LtoR_3s.mp4"   // <-- change to your file if different
   };
 
   const jsPsych = initJsPsych({
@@ -53,7 +53,7 @@
     return {
       type: jsPsychHtmlButtonResponse,
       stimulus: html,
-      choices: ['Continue →'],          // always enabled so you can proceed
+      choices: ['Continue →'],
       data: { phase:"view", ...t }
     };
   }
@@ -82,13 +82,44 @@
     };
   }
 
+  // Helper: try a pre-rendered slow file if present; else return original
+  function slowFilePath(src){
+    // e.g., videos/car_LtoR_3s.mp4 -> videos/car_LtoR_3s_slow.mp4
+    const dot = src.lastIndexOf('.');
+    return dot === -1 ? src + "_slow" : src.slice(0, dot) + "_slow" + src.slice(dot);
+  }
+
+  // Aggressively lock a video's playback rate so 0.7× sticks
+  function lockRate(video, rate){
+    const apply = () => {
+      video.defaultPlaybackRate = rate;
+      video.playbackRate = rate;
+    };
+    apply();
+
+    // Re-apply for ~2 seconds to squash resets on some browsers
+    const end = performance.now() + 2000;
+    (function tick(){
+      apply();
+      if (performance.now() < end) requestAnimationFrame(tick);
+    })();
+
+    // Keep re-applying on play/ratechange/seek/loop
+    const reapply = () => apply();
+    video.addEventListener('play', reapply);
+    video.addEventListener('ratechange', reapply);
+    video.addEventListener('seeking', reapply);
+    video.addEventListener('loadeddata', reapply);
+    video.addEventListener('ended', reapply);
+  }
+
   // 3) Memory: 4 choices (correct / wrong-dir / wrong-speed 0.7× / both wrong)
   function memoryTrial(t){
     const flip = t.direction === "LtoR" ? "RtoL" : "LtoR";
-    const correct   = { src:`videos/${t.scene}_${t.direction}_${t.moa}.mp4`, rate:1.0, tag:'correct' };
-    const wrongDir  = { src:`videos/${t.scene}_${flip}_${t.moa}.mp4`,        rate:1.0, tag:'wrong_dir' };
-    const wrongSpd  = { src: correct.src,                                     rate:0.7, tag:'wrong_speed' };
-    const bothWrong = { src: wrongDir.src,                                    rate:0.7, tag:'both_wrong' };
+    const correct   = { src:`videos/${t.scene}_${t.direction}_${t.moa}.mp4`, rate:1.0, label:'1.0×', tag:'correct' };
+    const wrongDir  = { src:`videos/${t.scene}_${flip}_${t.moa}.mp4`,        rate:1.0, label:'1.0×', tag:'wrong_dir' };
+    const wrongSpd  = { src: correct.src,                                    rate:0.7, label:'0.7×', tag:'wrong_speed' };
+    const bothWrong = { src: wrongDir.src,                                   rate:0.7, label:'0.7×', tag:'both_wrong' };
 
     const opts = jsPsych.randomization.shuffle([correct, wrongDir, wrongSpd, bothWrong]);
     const correct_index = opts.findIndex(o => o.tag === 'correct');
@@ -98,8 +129,10 @@
       <div class="grid">
         ${opts.map((o,i)=>`
           <div class="cell">
-            <div class="tag">${letters[i]}</div>
-            <video id="opt${i}" src="${o.src}" muted loop playsinline width="420"></video>
+            <div class="tag">${letters[i]} &nbsp; <span class="ratebadge">${o.label}</span></div>
+            <video id="opt${i}" muted loop playsinline width="420" preload="auto">
+              <source id="src${i}" src="${o.rate===0.7 ? slowFilePath(o.src) : o.src}" type="video/mp4">
+            </video>
           </div>
         `).join('')}
       </div>
@@ -111,24 +144,33 @@
       stimulus: gridHTML,
       choices: letters,
       on_load: () => {
-        // Robustly enforce playbackRate so 0.7× sticks across play/loop
-        const applyRate = (v, r) => { v.defaultPlaybackRate = r; v.playbackRate = r; };
+        // For each option: if slow file 404s, fall back to original + lockRate(0.7)
         opts.forEach((o,i)=>{
           const v = document.getElementById(`opt${i}`);
-          v.muted = true;            // allow autoplay
-          v.playsInline = true;
+          const s = document.getElementById(`src${i}`);
+          v.muted = true; v.playsInline = true;
 
-          v.addEventListener('loadedmetadata', () => {
-            applyRate(v, o.rate);
-            v.play().catch(()=>{ /* ignore autoplay errors */ });
-          }, { once:true });
+          if (o.rate === 0.7) {
+            // If the slow file fails, swap to original source and enforce 0.7×
+            v.addEventListener('error', () => {
+              s.src = o.src; v.load();
+            }, { once:true });
 
-          v.addEventListener('play', () => applyRate(v, o.rate));
-          v.addEventListener('ratechange', () => {
-            if (v.playbackRate !== o.rate) applyRate(v, o.rate);
-          });
-
-          v.load(); // start loading so loadedmetadata fires
+            v.addEventListener('loadedmetadata', () => {
+              // If we ended up on original file, lock rate; if slow file exists, keep 1.0×
+              // Detect by filename containing "_slow"
+              const isSlowFile = s.src.includes("_slow");
+              if (!isSlowFile) lockRate(v, 0.7);
+              v.play().catch(()=>{});
+            }, { once:true });
+          } else {
+            // 1.0× options
+            v.addEventListener('loadedmetadata', () => {
+              v.defaultPlaybackRate = 1.0; v.playbackRate = 1.0;
+              v.play().catch(()=>{});
+            }, { once:true });
+          }
+          v.load();
         });
       },
       data: {
@@ -144,7 +186,6 @@
     };
   }
 
-  // Build timeline
   const timeline = [
     viewClip(T),
     prefSlider(T),
@@ -156,5 +197,6 @@
   jsPsych.run(timeline);
 </script>
 </html>
+
 
 
