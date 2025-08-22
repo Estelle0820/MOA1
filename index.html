@@ -33,7 +33,7 @@
     .cell { text-align:center; }
     .tag { font-weight:700; margin:6px 0 8px; }
 
-    /* Slider labels: force all 5 (0–4) to show and line up */
+    /* Slider labels: 0–4 */
     .jspsych-slider-container .jspsych-slider-labels {
       display: flex !important;
       justify-content: space-between !important;
@@ -63,7 +63,6 @@
 <body></body>
 
 <script type="module">
-  // Show any JS errors on the page for quick debugging
   window.onerror = (m, s, l, c, e) => {
     document.body.innerHTML = "<pre>"+m+"\n"+(e && e.stack || "")+"</pre>";
   };
@@ -72,21 +71,21 @@
   import jsPsychHtmlSliderResponse from "https://esm.sh/@jspsych/plugin-html-slider-response";
   import jsPsychHtmlButtonResponse from "https://esm.sh/@jspsych/plugin-html-button-response";
 
-  // ---- ONE stimulus (edit filename if needed) ----
+  // ---- ONE stimulus ----
   const T = {
     scene: "car",
     direction: "LtoR",
     moa: "3s",
-    stimulus: "videos/car_LtoR_3s.mp4"   // <- change if your path differs
+    stimulus: "videos/car_LtoR_3s.mp4"   // 
   };
 
-  // Helper: read URL param (for optional participant ID like ?pid=ABC123)
+  // participant ID
   function getParam(name){
     const m = new URLSearchParams(location.search).get(name);
     return m ? decodeURIComponent(m) : "";
   }
 
-  // 👇👇 REPLACE with your Google Apps Script Web App URL
+  // Data Store
   const GS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwREc6pHuKPKOOf-rqucyfdvnrqLyLgd7Al-g4kT6rX3KlFDC8V8b6t8vSqP0_JkaTsWA/exec";
 
   const jsPsych = initJsPsych({
@@ -170,14 +169,14 @@ function viewClip(t){
         showContinue();
       }, { once:true });
 
-      // Optional: prevent right-click save
+      // prevent right-click save
       v.addEventListener('contextmenu', e => e.preventDefault());
     }
   };
 }
 
 
-  // 2a) Preference: discrete 0–4 with text only under 0,2,4
+  // 2a) Preference: 0–4 with text only under 0,2,4
   function prefSlider(t){
     return {
       type: jsPsychHtmlSliderResponse,
@@ -190,7 +189,7 @@ function viewClip(t){
     };
   }
 
-  // 2b) Simultaneity: discrete 0–4 with your wording + text under 0,2,4
+  // 2b) Simultaneity: 0–4 with text under 0,2,4
   function simultaneitySlider(t){
     return {
       type: jsPsychHtmlSliderResponse,
@@ -205,7 +204,6 @@ function viewClip(t){
     };
   }
 
-  // ---- Playback-rate lock helper (robust) ----
   function lockRate(video, rate){
     const apply = () => { video.defaultPlaybackRate = rate; video.playbackRate = rate; };
     // keep reapplying briefly to defeat resets
@@ -312,7 +310,7 @@ const moas       = ["0s","3s","7s"];
     choices: ['Continue']
   });
   
-// Make all 36 combinations
+// Main 36
 let allTrials = [];
 scenes.forEach(scene=>{
   directions.forEach(dir=>{
@@ -347,7 +345,7 @@ function shuffleWithConstraint(trials){
 }
 const constrained = shuffleWithConstraint(allTrials);
 
-// Build full timeline: 36 × (video→pref→sim→memory)
+// full timeline: 36 × (video→pref→sim→memory)
 let fullTimeline = [];
 constrained.forEach(T => {
   fullTimeline.push(viewClip(T));
@@ -356,7 +354,7 @@ constrained.forEach(T => {
   fullTimeline.push(memoryTrial(T));
 });
 
-// Add final end screen
+// final end screen
 fullTimeline.push({
   type: jsPsychHtmlButtonResponse,
   stimulus: '<div class="center"><p>Thanks! All trials complete. Data saved.</p></div>',
