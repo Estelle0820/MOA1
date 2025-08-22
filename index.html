@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>MOA Study</title>
+  <title>Single Trial Demo</title>
   <link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" />
   <style>
     body { max-width: 960px; margin: 40px auto; font-family: system-ui, sans-serif; }
@@ -15,76 +15,28 @@
 <body></body>
 
 <script type="module">
-  // show any JS error on screen
-  window.onerror = (m, s, l, c, e) => { document.body.innerHTML = "<pre>"+m+"\n"+(e&&e.stack||"")+"</pre>"; };
+  // show any error on screen so it's never blank
+  window.onerror = (m, s, l, c, e) =>
+    { document.body.innerHTML = "<pre>"+m+"\n"+(e&&e.stack||"")+"</pre>"; };
 
-  // Use esm.sh (works for you) and only HTML-based plugins (no video plugin needed)
+  // Use esm.sh (reliable ESM) and HTML-based plugins
   import { initJsPsych } from "https://esm.sh/jspsych";
-  import jsPsychInstructions from "https://esm.sh/@jspsych/plugin-instructions";
   import jsPsychHtmlSliderResponse from "https://esm.sh/@jspsych/plugin-html-slider-response";
   import jsPsychHtmlButtonResponse from "https://esm.sh/@jspsych/plugin-html-button-response";
 
-  // Factors & filenames
-  const scenes = ["car","dog","horse","penguin","plane","roomba"];
-  const dirs   = ["LtoR","RtoL"];
-  const moas   = ["0s","3s","7s"];
-
-  function makeTrials(){
-    const t=[];
-    for (const s of scenes) for (const d of dirs) for (const m of moas) {
-      t.push({ scene:s, direction:d, moa:m, stimulus:`videos/${s}_${d}_${m}.mp4` });
-    }
-    return t;
-  }
-
-  // Shuffle with constraint: no adjacent SAME (scene, direction)
-  function shuffleWithConstraint(items){
-    const n=items.length, used=Array(n).fill(false), order=[];
-    const conflict=Array.from({length:n},()=>Array(n).fill(false));
-    for(let i=0;i<n;i++) for(let j=0;j<n;j++) if(i!==j)
-      conflict[i][j]=(items[i].scene===items[j].scene)&&(items[i].direction===items[j].direction);
-    const idx=[...Array(n).keys()];
-    function sh(a){for(let i=a.length-1;i>0;i--){const k=Math.random()* (i+1) | 0; [a[i],a[k]]=[a[k],a[i]]} return a}
-    function bt(pos){
-      if(pos===n) return true;
-      sh(idx);
-      for(const i of idx){
-        if(used[i]) continue;
-        if(pos>0 && conflict[order[pos-1]][i]) continue;
-        used[i]=true; order.push(i);
-        if(bt(pos+1)) return true;
-        order.pop(); used[i]=false;
-      }
-      return false;
-    }
-    if(!bt(0)) throw new Error("ordering failed");
-    return order.map(i=>items[i]);
-  }
-
-  const TRIALS = shuffleWithConstraint(makeTrials());
-
-  const jsPsych = initJsPsych({
-    on_finish: () => jsPsych.data.get().localSave('csv','moa_study_data.csv')
-  });
-
-  // Intro
-  const intro = {
-    type: jsPsychInstructions,
-    pages: [
-      `<p><strong>Welcome!</strong></p>
-       <p>Each trial:</p>
-       <ol style="text-align:left; display:inline-block">
-         <li>Watch a ~14s clip (click Play).</li>
-         <li>Rate liking (0–4 continuous slider).</li>
-         <li>Answer if visual & auditory motion started together (Yes/No).</li>
-         <li>Choose the matching trajectory from four videos (same direction & speed).</li>
-       </ol>
-       <p>Please use headphones.</p>`
-    ],
-    show_clickable_nav: true
+  // ----- ONE stimulus -----
+  const trialInfo = {
+    scene: "car",
+    direction: "LtoR",
+    moa: "3s",
+    stimulus: "videos/car_LtoR_3s.mp4"   // ← change if your filename differs
   };
 
-  // 1) Watch the clip (HTML video + Continue button enabled after 'ended')
+  const jsPsych = initJsPsych({
+    on_finish: () => jsPsych.data.get().localSave('csv','single_trial_demo.csv')
+  });
+
+  // 1) Watch the clip (click Play; Continue enables after video ends)
   function viewClip(t){
     const html = `
       <p><em>Click Play to watch the clip.</em></p>
@@ -102,35 +54,93 @@
         const b = document.getElementById('contbtn');
         v.addEventListener('ended', () => { b.disabled = false; });
       },
-      data: { phase:"view", ...t }
+      data: { phase: "view", ...t }
     };
   }
 
-  // 2) Preference slider 0–4 (continuous)
-  function prefRating(t){
+  // 2a) Slider: Preference 0–4 (continuous)
+  function prefSlider(t){
     return {
       type: jsPsychHtmlSliderResponse,
       stimulus: '<p><strong>How much did you like the clip you just watched?</strong></p>',
       min: 0, max: 4, step: 0.01, slider_start: 2,
       labels: ['0 (not at all)','4 (very much)'],
       require_movement: true,
-      data: { phase:"preference", ...t }
+      data: { phase: "preference", ...t }
     };
   }
 
-  // 3) Simultaneity Yes/No
-  function simultaneity(t){
+  // 2b) Slider: Perceived simultaneity 0–4 (continuous)
+  function simultaneitySlider(t){
     return {
-      type: jsPsychHtmlButtonResponse,
-      stimulus: '<p><strong>Did the visual and auditory motion start together?</strong></p>',
-      choices: ['Yes','No'],
-      data: { phase:"simultaneity", ...t }
+      type: jsPsychHtmlSliderResponse,
+      stimulus: '<p><strong>How together were the visual & auditory onsets?</strong></p>',
+      min: 0, max: 4, step: 0.01, slider_start: 2,
+      labels: ['0 (not at all together)','4 (exactly together)'],
+      require_movement: true,
+      data: { phase: "simultaneity_slider", ...t }
     };
   }
 
-  // 4) Memory (4 videos; correct / wrong-dir / wrong-speed 0.7× / both wrong)
+  // 3) Memory: 4 choices (correct / wrong-dir / wrong-speed 0.7× / both wrong)
   function memoryTrial(t){
     const flipped   = t.direction === "LtoR" ? "RtoL" : "LtoR";
     const correct   = { src:`videos/${t.scene}_${t.direction}_${t.moa}.mp4`, rate:1.0, tag:'correct' };
     const wrongDir  = { src:`videos/${t.scene}_${flipped}_${t.moa}.mp4`,     rate:1.0, tag:'wrong_dir' };
-    const wrongSpd  = { src: correct.src,
+    const wrongSpd  = { src: correct.src,                                    rate:0.7, tag:'wrong_speed' };
+    const bothWrong = { src: wrongDir.src,                                   rate:0.7, tag:'both_wrong' };
+
+    let opts = jsPsych.randomization.shuffle([correct, wrongDir, wrongSpd, bothWrong]);
+    const correct_index = opts.findIndex(o => o.tag === 'correct');
+    const letters = ['A','B','C','D'];
+
+    const gridHTML = `
+      <div class="grid">
+        ${opts.map((o,i)=>`
+          <div class="cell">
+            <div class="tag">${letters[i]}</div>
+            <video id="opt${i}" src="${o.src}" muted loop playsinline></video>
+          </div>
+        `).join('')}
+      </div>
+      <p><em>Which clip matches the one you just watched (same direction & speed)?</em></p>
+    `;
+
+    return {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: gridHTML,
+      choices: letters,
+      on_load: () => {
+        // muted autoplay allowed; set playbackRate for the speed foils
+        opts.forEach((o,i)=>{
+          const v = document.getElementById(`opt${i}`);
+          v.playbackRate = o.rate;              // 1.0 or 0.7
+          v.addEventListener('canplay', ()=> v.play(), { once:true });
+          v.load();
+        });
+      },
+      data: {
+        phase:"memory",
+        ...t,
+        memory_option_order: opts.map(o=>o.tag).join(','),
+        correct_index
+      },
+      on_finish: (d) => {
+        d.choice_index = d.response;            // 0..3
+        d.is_correct   = (d.response === correct_index);
+      }
+    };
+  }
+
+  // Build & run the one-trial timeline
+  const timeline = [
+    viewClip(trialInfo),
+    prefSlider(trialInfo),
+    simultaneitySlider(trialInfo),
+    memoryTrial(trialInfo),
+    { type: jsPsychHtmlButtonResponse, stimulus: "<p>Thanks! Data saved.</p>", choices:["Finish"] }
+  ];
+
+  jsPsych.run(timeline);
+</script>
+</html>
