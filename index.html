@@ -65,8 +65,7 @@
       // Build payload for Google Sheets
       const payload = {
         timestamp: new Date().toISOString(),
-        participant: getParam('pid') || '',     // optional
-        userAgent: navigator.userAgent,
+        participant: getParam('pid') || '',  
         data: jsPsych.data.get().values()       // array of trial objects
       };
 
