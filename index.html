@@ -132,7 +132,7 @@ function viewClip(t){
   return {
     type: jsPsychHtmlButtonResponse,
     stimulus: html,
-    choices: [],   // no built-in button at first
+    choices: [],   // no built-in jsPsych button initially
     data: { phase:"view", ...t },
     on_load: () => {
       const v   = document.getElementById('mainvid');
@@ -140,8 +140,6 @@ function viewClip(t){
       const msg = document.getElementById('watchmsg');
 
       let revealed = false;
-      let finished = false;
-      let lastTime = 0;
 
       const showContinue = () => {
         if (revealed) return;
@@ -154,48 +152,30 @@ function viewClip(t){
         box.appendChild(btn);
       };
 
-      // Block any seeking during first watch (forward or back)
-      v.addEventListener('timeupdate', () => {
-        if (Math.abs(v.currentTime - lastTime) > 0.35) {
-          v.currentTime = lastTime; // snap back if user jumped
-          return;
-        }
-        lastTime = v.currentTime;
-      });
-      v.addEventListener('seeking', () => { v.currentTime = lastTime; });
-
-      // After finishing, remove controls and block replay
-      const blockReplay = () => {
-        finished = true;
+      // Remove play/pause controls after they start playing once
+      const firstPlay = () => {
         v.removeAttribute('controls');
-        v.addEventListener('play', () => { if (finished) { v.pause(); v.currentTime = v.duration; } });
+        // prevent pausing
+        v.addEventListener('pause', () => {
+          if (!v.ended) {
+            v.play().catch(()=>{});
+          }
+        });
+        v.removeEventListener('play', firstPlay);
       };
+      v.addEventListener('play', firstPlay);
 
-      // Robust finish detection (handles Safari not firing 'ended' sometimes)
-      const maybeFinish = () => {
-        const dur = v.duration;
-        if (Number.isFinite(dur) && dur > 0 && (dur - v.currentTime) <= 0.12) {
-          blockReplay();
-          showContinue();
-        }
-      };
+      // When it ends, reveal Continue button
+      v.addEventListener('ended', () => {
+        showContinue();
+      }, { once:true });
 
-      v.addEventListener('ended', () => { blockReplay(); showContinue(); }, { once:true });
-      v.addEventListener('timeupdate', maybeFinish);
-      v.addEventListener('pause',     maybeFinish);
-
-      // Initialize lastTime once metadata is ready
-      if (v.readyState < 1) {
-        v.addEventListener('loadedmetadata', () => { lastTime = 0; }, { once:true });
-      } else {
-        lastTime = 0;
-      }
-
-      // Optional: discourage saving
+      // Optional: prevent right-click save
       v.addEventListener('contextmenu', e => e.preventDefault());
     }
   };
 }
+
 
   // 2a) Preference: discrete 0–4 with text only under 0,2,4
   function prefSlider(t){
