@@ -268,45 +268,47 @@
     return { type: jsPsychHtmlButtonResponse, stimulus:`<div class="wrap">${html}</div>`, choices:[btn] };
   }
 
-  const intro1 =
-    // Page 1 — Welcome
-    screenTrial(`
-      <div class="center">
-        <h2>Welcome to the study!</h2>
-        <p>You will watch <strong>36 short animated videos</strong> showing objects moving across the screen.</p>
-        <p>The sound will also move between your left and right headphones with the object.</p>
-        <p>Please make sure you are wearing <strong>headphones in a quiet environment</strong>.</p>
-      </div>
-    `, "Next");
+// Intro screens (3 separate pages)
+function screenTrial(html, btn="Continue"){
+  return { type: jsPsychHtmlButtonResponse, stimulus:`<div class="wrap">${html}</div>`, choices:[btn] };
+}
 
-    const intro2 = 
-    // Page 2 — What you'll do (bullets)
-    screenTrial(`
-      <div class="center">
-        <h3>What you'll do after each video</h3>
-        <ul>
-          <li><strong>Preference rating</strong> – “How much did you like the clip you just watched?”</li>
-          <li><strong>Timing judgment</strong> – “To what extent did the visual and auditory motion begin at the same time?”<br>
-            <small>This means: did the movement you <em>saw</em> and the movement you <em>heard</em> seem to start together, or did one begin slightly earlier?</small>
-          </li>
-          <li><strong>Memory test</strong> – Choose which of four options matches the clip you just watched. Options may differ in <em>direction</em> and/or <em>speed</em>.</li>
-        </ul>
-        <p>After all 36 trials, you’ll answer a few brief demographic questions.</p>
-      </div>
-    `, "Next");
+// Page 1 — Welcome
+const intro1 = screenTrial(`
+  <div class="center">
+    <h2>Welcome to the study!</h2>
+    <p>You will watch <strong>36 short animated videos</strong> showing objects moving across the screen.</p>
+    <p>The sound will also move between your left and right headphones with the object.</p>
+    <p>Please make sure you are wearing <strong>headphones in a quiet environment</strong>.</p>
+  </div>
+`, "Next");
 
-    const intro3 = 
-    // Page 3 — Using the sliders (bullets)
-    screenTrial(`
-      <div class="center">
-        <h3>Using the sliders</h3>
-        <p>For the preference and timing ratings, you will use a slider from <strong>0 to 4</strong>.</p>
-        <ul>
-          <li>Move the slider to the number that best matches your judgment.</li>
-          <li>To select <strong>2 (Neutral)</strong>, click directly on 2.</li>
-        </ul>
-      </div>
-    `, "Begin practice");
+// Page 2 — What you'll do
+const intro2 = screenTrial(`
+  <div class="center">
+    <h3>What you'll do after each video</h3>
+    <ul>
+      <li><strong>Preference rating</strong> – “How much did you like the clip you just watched?”</li>
+      <li><strong>Timing judgment</strong> – “To what extent did the visual and auditory motion begin at the same time?”<br>
+        <small>This means: did the movement you <em>saw</em> and the movement you <em>heard</em> seem to start together, or did one begin slightly earlier?</small>
+      </li>
+      <li><strong>Memory test</strong> – Choose which of four options matches the clip you just watched. Options may differ in <em>direction</em> and/or <em>speed</em>.</li>
+    </ul>
+    <p>After all 36 trials, you’ll answer a few brief demographic questions.</p>
+  </div>
+`, "Next");
+
+// Page 3 — Sliders
+const intro3 = screenTrial(`
+  <div class="center">
+    <h3>Using the sliders</h3>
+    <p>For the preference and timing ratings, you will use a slider from <strong>0 to 4</strong>.</p>
+    <ul>
+      <li>Move the slider to the number that best matches your judgment.</li>
+      <li>To select <strong>2 (Neutral)</strong>, click directly on 2.</li>
+    </ul>
+  </div>
+`, "Begin practice");
 
   // Practice timeline
   const practiceTimeline = [];
