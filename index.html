@@ -7,6 +7,7 @@
   <script src="https://unpkg.com/jspsych@7.3.4"></script>
   <script src="https://unpkg.com/@jspsych/plugin-survey-text@2.0.0"></script>
   <script src="https://unpkg.com/@jspsych/plugin-html-button-response@2.0.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-slider-response@2.0.0"></script>
   <style>
     .jspsych-content-wrapper { display:flex; justify-content:center; }
     .jspsych-content { max-width:960px !important; margin:40px auto !important; }
@@ -43,15 +44,11 @@
 </head>
 <body></body>
 
-<script type="module">
+<script type>
   // Show JS errors on the page (helps when testing)
   window.onerror = (m, s, l, c, e) => {
     document.body.innerHTML = "<pre style='white-space:pre-wrap'>" + m + "\n" + (e && e.stack || "") + "</pre>";
   };
-
-  import { initJsPsych } from "https://esm.sh/jspsych";
-  import jsPsychHtmlSliderResponse from "https://esm.sh/@jspsych/plugin-html-slider-response";
-  import jsPsychHtmlButtonResponse from "https://esm.sh/@jspsych/plugin-html-button-response";
 
   // --------- helpers ----------
   function getParam(name){
@@ -368,7 +365,7 @@
   
   // Final / Debrief
   const final_debrief = {
-    type: jsPsych.plugins['html-button-response'],
+    type: jsPsychHtmlButtonResponse,
     stimulus: `
       <div class="center" style="max-width: 820px; margin: 0 auto; line-height:1.5;">
         <h2>Thank you for participating in this study!</h2>
