@@ -1,4 +1,59 @@
-<!DOCTYPE html><meta charset="utf-8">
-<title>hello</title>
-<body style="font:16px system-ui;padding:40px">Hello world.</body>
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>jsPsych minimal</title>
+<link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" />
+<style>
+  /* If your host/preview adds multiple roots, only show the last one */
+  #jspsych-root > *:not(:last-child){ display:none !important; }
+  .jspsych-content-wrapper{ min-height:70vh; }
+  body{ font:16px system-ui, sans-serif; background:#fff; }
+  pre#err{ white-space:pre-wrap; color:#b00; padding:12px; border:1px solid #f3c; background:#fff3f8; }
+</style>
 
+<div id="jspsych-root"></div>
+<pre id="err" style="display:none"></pre>
+
+<script>
+  // Show any runtime error on the page:
+  window.addEventListener('error', e=>{
+    const box = document.getElementById('err');
+    box.style.display = 'block';
+    box.textContent = `JS ERROR: ${e.message}\n${e.error && e.error.stack || ''}`;
+  });
+  window.addEventListener('unhandledrejection', e=>{
+    const box = document.getElementById('err');
+    box.style.display = 'block';
+    box.textContent = `PROMISE REJECTION: ${e.reason && e.reason.message || e.reason}`;
+  });
+</script>
+
+<!-- Load scripts with defer so DOM is ready -->
+<script defer src="https://unpkg.com/jspsych@7.3.4"></script>
+<script defer src="https://unpkg.com/@jspsych/plugin-html-button-response@2.0.0"></script>
+
+<script defer>
+  (function start(){
+    // Bail out if CDN was blocked
+    if (typeof window.initJsPsych !== 'function') {
+      const box = document.getElementById('err');
+      box.style.display = 'block';
+      box.textContent = 'jsPsych failed to load (CDN blocked by extension or preview iframe).';
+      return;
+    }
+
+    const root = document.getElementById('jspsych-root');
+    const jsPsych = initJsPsych({ display_element: root });
+
+    const t = (label)=>({
+      type: jsPsychHtmlButtonResponse,
+      on_start: ()=>{ while(root.firstChild) root.removeChild(root.firstChild); }, // hard clear
+      stimulus: `<div style="padding:40px;text-align:center">
+                  <h2>${label}</h2>
+                  <p>Click Continue to go to the next screen.</p>
+                </div>`,
+      choices: ['Continue']
+    });
+
+    jsPsych.run([ t('Intro 1'), t('Intro 2'), t('Intro 3') ]);
+  })();
+</script>
