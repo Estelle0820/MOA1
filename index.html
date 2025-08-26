@@ -1,10 +1,50 @@
-<!DOCTYPE html><meta charset="utf-8">
+<!DOCTYPE html>
+<meta charset="utf-8" />
 <link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" />
 <script src="https://unpkg.com/jspsych@7.3.4"></script>
 <script src="https://unpkg.com/@jspsych/plugin-html-button-response@2.0.0"></script>
-<body></body>
-<script>
-  const jsPsych = initJsPsych();
-  const t = s => ({ type: jsPsychHtmlButtonResponse, stimulus:`<div style="padding:40px;text-align:center">${s}</div>`, choices:['Continue'] });
-  jsPsych.run([ t('Intro 1'), t('Intro 2'), t('Intro 3') ]);
-</script>
+
+<body>
+  <!-- Single, controlled mount point -->
+  <div id="jspsych-root"></div>
+
+  <script>
+    // 1) Force a single display element
+    const root = document.getElementById('jspsych-root');
+
+    // 2) CSS guard: if your host stacks nodes, only the latest is visible
+    const guard = document.createElement('style');
+    guard.textContent = `
+      /* Show only the newest child (the current trial); hide earlier ones if any get appended */
+      #jspsych-root > *:not(:last-child) { display: none !important; }
+      /* Make the swap visually obvious (optional) */
+      .jspsych-content-wrapper { min-height: 70vh; }
+    `;
+    document.head.appendChild(guard);
+
+    // 3) Init jsPsych with explicit display element
+    const jsPsych = initJsPsych({
+      display_element: root
+    });
+
+    // 4) Ultra-safe trial factory: hard clear the mount before rendering
+    const t = (label) => ({
+      type: jsPsychHtmlButtonResponse,
+      // HARD CLEAR to defeat any host that appends instead of replacing
+      on_start: () => { while (root.firstChild) root.removeChild(root.firstChild); },
+      stimulus: `<div style="padding:40px; text-align:center; font:16px system-ui,sans-serif">
+                   <h2>${label}</h2>
+                   <p>This is a single screen. Click Continue to go to the next one.</p>
+                 </div>`,
+      choices: ['Continue']
+    });
+
+    // 5) Run three simple trials
+    jsPsych.run([
+      t('Intro 1'),
+      t('Intro 2'),
+      t('Intro 3')
+    ]);
+  </script>
+</body>
+
