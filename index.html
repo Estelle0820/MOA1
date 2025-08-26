@@ -453,9 +453,16 @@ fullTimeline.push({
 
 // Run it
 jsPsych.run([
+  // 1) Intro screens
+  ...introScreens,
+
+  // 2) Practice trials
   ...practiceTimeline,
+
+  // 3) Transition after practice
+  practiceCompleteScreen,
+
+  // 4) Main trials
   ...fullTimeline
 ]);
-</script>
-</html>
 
