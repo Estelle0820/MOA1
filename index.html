@@ -89,49 +89,49 @@
   }
 
   function viewClip(t){
-    const html = `
-      <div class="center">
-        <p id="watchmsg"><em>Click Play to watch the clip. Continue will appear after it ends.</em></p>
-        <video id="mainvid" width="900" controls playsinline preload="metadata"
-               controlslist="nodownload noplaybackrate noremoteplayback">
-          <source src="${t.stimulus}" type="video/mp4">
-        </video>
-        <div id="btnbox"></div>
-      </div>`;
-    return {
-      type: jsPsychHtmlButtonResponse,
-      stimulus: html,
-      choices: [],
-      data: { phase:"view", ...t },
-      on_load: () => {
-        const v = document.getElementById('mainvid');
-        const box = document.getElementById('btnbox');
-        const msg = document.getElementById('watchmsg');
-        let revealed = false;
+  const html = `
+    <div class="center">
+      <p id="watchmsg"><em>Click Play to watch the clip. Continue will appear after it ends.</em></p>
+      <video id="mainvid" width="900" controls playsinline preload="metadata"
+             controlslist="nodownload noplaybackrate noremoteplayback">
+        <source src="${t.stimulus}" type="video/mp4">
+      </video>
+    </div>`;
 
-        const showContinue = () => {
-          if (revealed) return; revealed = true;
-          msg.textContent = 'You can continue.';
-          const btn = document.createElement('button');
-          btn.className = 'jspsych-btn';
-          btn.textContent = 'Continue →';
-          btn.onclick = () => jsPsych.finishTrial({ phase:"view", ...t });
-          box.appendChild(btn);
-        };
+  return {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: html,
+    // Provide a real plugin button so jsPsych controls trial ending
+    choices: ['Continue →'],
+    // Render the button but keep it disabled/hidden until video ends
+    button_html: '<button class="jspsych-btn" id="contBtn" disabled style="opacity:.35;pointer-events:none">%choice%</button>',
+    data: { phase:"view", ...t },
+    on_load: () => {
+      const v   = document.getElementById('mainvid');
+      const btn = document.getElementById('contBtn');
+      const msg = document.getElementById('watchmsg');
 
-        const firstPlay = () => {
-          v.removeAttribute('controls');
-          v.addEventListener('pause', ()=>{ if(!v.ended) v.play().catch(()=>{}); });
-          v.removeEventListener('play', firstPlay);
-        };
-        v.addEventListener('play', firstPlay);
+      // Prevent skipping / keep rate locked
+      const firstPlay = () => {
+        v.removeAttribute('controls');
+        v.addEventListener('pause', ()=>{ if(!v.ended) v.play().catch(()=>{}); });
+        v.removeEventListener('play', firstPlay);
+      };
+      v.addEventListener('play', firstPlay);
 
-        lockRate(v, 1.0);
-        v.addEventListener('ended', showContinue, { once:true });
-        v.addEventListener('contextmenu', e => e.preventDefault());
-      }
-    };
-  }
+      const enableContinue = () => {
+        msg.textContent = 'You can continue.';
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+      };
+
+      lockRate(v, 1.0);
+      v.addEventListener('ended', enableContinue, { once:true });
+      v.addEventListener('contextmenu', e => e.preventDefault());
+    }
+  };
+}
 
   function prefSlider(t){
     return {
