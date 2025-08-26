@@ -71,14 +71,6 @@
   import jsPsychHtmlSliderResponse from "https://esm.sh/@jspsych/plugin-html-slider-response";
   import jsPsychHtmlButtonResponse from "https://esm.sh/@jspsych/plugin-html-button-response";
 
-  // ---- ONE stimulus ----
-  const T = {
-    scene: "car",
-    direction: "LtoR",
-    moa: "3s",
-    stimulus: "videos/car_LtoR_3s.mp4"   // 
-  };
-
   // participant ID
   function getParam(name){
     const m = new URLSearchParams(location.search).get(name);
@@ -120,7 +112,7 @@
 function viewClip(t){
   const html = `
     <div class="center">
-      <p id="watchmsg"><em>Click Play to watch the full clip. The Continue button will appear when it ends.</em></p>
+      <p id="watchmsg"><em>Click the Play button to watch the full clip. The Continue button will appear when it ends.</em></p>
       <video id="mainvid" width="900" controls playsinline preload="metadata"
              controlslist="nodownload noplaybackrate noremoteplayback">
         <source src="${t.stimulus}" type="video/mp4">
@@ -174,7 +166,6 @@ function viewClip(t){
     }
   };
 }
-
 
   // 2a) Preference: 0–4 with text only under 0,2,4
   function prefSlider(t){
@@ -335,32 +326,79 @@ function memoryTrialPractice(t){
   };
 }
 
- // ---------- PRACTICE (2 trials) ----------
+// ---------- Intro screens ----------
+function screenTrial(html, btn="Continue"){
+  return {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: `<div class="wrap">${html}</div>`,
+    choices: [btn]
+  };
+}
+
+const introScreens = [
+  // Screen 1 — Welcome
+  screenTrial(`
+    <div class="center">
+      <h2>Welcome to the study!</h2>
+      <p>You will watch <strong>36 short animated videos</strong> showing objects moving across the screen.</p>
+      <p>The sound will also move between your left and right headphones with the object.</p>
+      <p>Please make sure you are wearing <strong>headphones in a quiet environment</strong>.</p>
+    </div>
+  `, "Next"),
+
+  // Screen 2 — Task Overview
+  screenTrial(`
+    <h3>What you'll do after each video</h3>
+    <ol>
+      <li><strong>1. Preference rating</strong> – “How much did you like the clip you just watched?”</li>
+      <li><strong>2. Timing judgment</strong> – “To what extent did the visual and auditory motion begin at the same time?”<br>
+        <small>This means: did the movement you <em>saw</em> and the movement you <em>heard</em> seem to start together, or did one begin slightly earlier?</small>
+      </li>
+      <li><strong>3. Memory test</strong> – Choose which of four options matches the clip you just watched. Options may differ in <em>direction</em> and/or <em>speed</em>.</li>
+    </ol>
+    <p>After all 36 trials, you’ll answer a few brief demographic questions.</p>
+  `, "Next"),
+
+  // Screen 3 — Slider Use
+  screenTrial(`
+    <h3>Using the sliders</h3>
+    <p>For the preference and timing ratings, you will use a slider from <strong>0 to 4</strong>.</p>
+    <ul>
+      <li>Move the slider to the number that best matches your judgment.</li>
+      <li>If you want to select <strong>2 (Neutral)</strong>, click directly on 2.</li>
+    </ul>
+  `, "Next"),
+
+  // Screen 4 — Practice (intro to practice)
+  screenTrial(`
+    <div class="center">
+      <h3>Practice</h3>
+      <p>Let’s start with <strong>2 practice trials</strong> to learn the task.</p>
+    </div>
+  `, "Begin practice")
+];
+
+// ---------- PRACTICE (2 trials) ----------
 const practiceTrials = [
   { scene:"practice1", direction:"LtoR", moa:"demo", stimulus:"videos/practice1.mp4" },
   { scene:"practice2", direction:"RtoL", moa:"demo", stimulus:"videos/practice2.mp4" }
 ];
 
-let practiceTimeline = [
-  {
-    type: jsPsychHtmlButtonResponse,
-    stimulus: '<div class="center"><h2>Practice</h2><p>Welcome! You will start with 2 practice trials to learn the task.</p></div>',
-    choices: ['Begin practice']
-  }
-];
-
+const practiceTimeline = [];
 practiceTrials.forEach(T => {
   practiceTimeline.push(viewClip(T));
   practiceTimeline.push(prefSlider(T));
   practiceTimeline.push(simultaneitySlider(T));
-  practiceTimeline.push(memoryTrialPractice(T)); // ← use the practice version
+  practiceTimeline.push(memoryTrialPractice(T)); // practice version
 });
 
-practiceTimeline.push({
-  type: jsPsychHtmlButtonResponse,
-  stimulus: '<div class="center"><p>Practice complete. The main experiment will now begin.</p></div>',
-  choices: ['Continue']
-});
+// Screen 5 — Transition AFTER practice
+const practiceCompleteScreen = screenTrial(`
+  <div class="center">
+    <h3>Practice complete!</h3>
+    <p>The main experiment will now begin.</p>
+  </div>
+`, "Start main task");
   
 // Main 36
 let allTrials = [];
@@ -395,7 +433,7 @@ function shuffleWithConstraint(trials){
   }
   return shuffled; // fallback
 }
-const constrained = shuffleWithConstraint(allTrials);
+const constrained = shuffleWithConstraint(allTrials).slide(0,3);
 
 // full timeline: 36 × (video→pref→sim→memory)
 let fullTimeline = [];
