@@ -268,7 +268,7 @@
     return { type: jsPsychHtmlButtonResponse, stimulus:`<div class="wrap">${html}</div>`, choices:[btn] };
   }
 
-  const introScreens = [
+  const intro1 = [
     // Page 1 — Welcome
     screenTrial(`
       <div class="center">
@@ -279,6 +279,7 @@
       </div>
     `, "Next"),
 
+    const intro2 = [
     // Page 2 — What you'll do (bullets)
     screenTrial(`
       <div class="center">
@@ -294,6 +295,7 @@
       </div>
     `, "Next"),
 
+    const intro3 = [
     // Page 3 — Using the sliders (bullets)
     screenTrial(`
       <div class="center">
@@ -417,7 +419,9 @@
 
   // Run
   jsPsych.run([
-    ...introScreens,
+    intro1,
+    intro2,
+    intro3
     ...practiceTimeline,
     practiceCompleteScreen,
     ...mainTimeline,
