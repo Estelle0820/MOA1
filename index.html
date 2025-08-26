@@ -433,7 +433,7 @@ function shuffleWithConstraint(trials){
   }
   return shuffled; // fallback
 }
-const constrained = shuffleWithConstraint(allTrials).slide(0,3);
+const constrained = shuffleWithConstraint(allTrials).slice(0,3);
 
 // full timeline: 36 × (video→pref→sim→memory)
 let fullTimeline = [];
