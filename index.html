@@ -333,14 +333,88 @@
     mainTimeline.push(simultaneitySlider(T));
     mainTimeline.push(memoryTrial(T));
   });
-  mainTimeline.push(screenTrial('<div class="center"><p>Thanks! All trials complete. Data saved.</p></div>', 'Finish'));
 
+  // Demographics
+  const demographics = {
+    type: jsPsychSurveyText,
+    preamble: `
+      <div class="center">
+        <h2>Screen 6</h2>
+        <p>You have finished the <strong>36 animation trials</strong>. Last, please answer these demographic questions:</p>
+      </div>
+    `,
+    questions: [
+      {prompt: "1) Please enter your age.", name: "age", required: true, placeholder: "e.g., 26"},
+      {prompt: "2) Please enter your gender.", name: "gender", required: true, placeholder: "e.g., woman / man / nonbinary / prefer to self-describe"},
+      {prompt: "3) Please enter your race/ethnicity.", name: "race_ethnicity", required: true, placeholder: "e.g., Asian; White; Black; Hispanic/Latino; Multiracial; …"},
+      {prompt: "4) Do you have normal hearing?", name: "hearing", required: true, placeholder: "e.g., Yes / No / Unsure"}
+    ],
+    button_label: "Continue",
+    on_load: () => {
+      // Light styling to left-align prompts while keeping outer content centered
+      const style = document.createElement('style');
+      style.textContent = `
+        .jspsych-survey-text .jspsych-survey-text-preamble { text-align: center; }
+        .jspsych-survey-text-question      { text-align: left; max-width: 720px; margin: 0 auto 16px; }
+        .jspsych-survey-text-question p    { margin-bottom: 6px; font-weight: 600; }
+        .jspsych-survey-text-question input{ width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; }
+        .jspsych-btn { padding: 10px 18px; border-radius: 8px; }
+      `;
+      document.head.appendChild(style);
+    }
+  };
+
+  // Final / Debrief Screen
+  const final_debrief = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: `
+      <div class="center" style="max-width: 820px; margin: 0 auto; line-height:1.5;">
+        <h2>Thank you for participating in this study!</h2>
+        <p>
+          In this experiment, sometimes the visual and auditory motion of the object started at the same time,
+          and sometimes the visual motion began slightly earlier. We are interested in whether you can perceive
+          these differences, whether your liking of the clips varies depending on synchrony, and whether synchrony
+          influences your memory for the speed and direction of the video clips.
+        </p>
+        <p>
+          If you would like to discuss the study further or are curious about this research, please contact
+          <strong>Estelle Song</strong> at <a href="mailto:ssong@albany.edu">ssong@albany.edu</a> or the faculty advisor,
+          <strong>Dr. Ronald Friedman</strong> at <a href="mailto:rfriedman@albany.edu">rfriedman@albany.edu</a>.
+          You may also contact either researcher if you would like your data withdrawn from the study. If you choose to do so,
+          you will still receive full credit for participation and will not be penalized in any way.
+        </p>
+        <p>
+          If you experienced any discomfort during this study, or wish to discuss any other concerns, you may contact the
+          <strong>University Counseling Center</strong> at (518) 442-5800.
+        </p>
+        <p>
+          Because this research is potentially important, we kindly ask that you please do not discuss the study with others
+          before they participate. Prior knowledge could affect their natural responses.
+        </p>
+        <p>Thank you very much for your assistance with this project!</p>
+      </div>
+    `,
+    choices: ["Finish"],
+    on_load: () => {
+      const style = document.createElement('style');
+      style.textContent = `
+        .jspsych-content-wrapper { display:flex; justify-content:center; }
+        .jspsych-content { max-width: 960px !important; margin: 40px auto !important; }
+        .center { text-align:center; }
+        .jspsych-btn { padding: 10px 18px; border-radius: 8px; }
+      `;
+      document.head.appendChild(style);
+    }
+  };
+  
   // Run
   jsPsych.run([
     ...introScreens,
     ...practiceTimeline,
     practiceCompleteScreen,
-    ...mainTimeline
+    ...mainTimeline,
+    demographics,
+    final_debrief
   ]);
 </script>
 </html>
