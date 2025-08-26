@@ -13,6 +13,16 @@
     .grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; align-items:start; }
     .cell { text-align:center; }
     .tag { font-weight:700; margin:6px 0 8px; }
+    /* Only bullet points should left-align */
+    .center li {
+      text-align: left;
+      margin-left: 1.5em;   /* indent nicely */
+    }
+    .center ol,
+    .center ul {
+      display: inline-block; /* keep the list block itself centered */
+      text-align: left;      /* but make the list items inside left-aligned */
+    }
 
     /* Sliders (0–4) */
     .jspsych-slider-container .jspsych-slider-labels{
