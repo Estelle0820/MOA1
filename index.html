@@ -21,23 +21,18 @@
     .cell { text-align:center; }
     .tag { font-weight:700; margin:6px 0 8px; }
 
-    /* Bullets: left-aligned inside centered sections */
-    .center ul {
-      list-style: disc outside;
-      padding-left: 1.25em;
-      margin: 0 auto;
-      max-width: 720px;
-    }
+    /* Bullets left-aligned inside centered sections */
+    .center ul { list-style: disc outside; padding-left: 1.25em; margin: 0 auto; max-width: 720px; }
     .center li { text-align: left; }
 
-    /* Sliders (0–4) */
+    /* Slider labels */
     .jspsych-slider-container .jspsych-slider-labels{
       display:flex !important; justify-content:space-between !important; gap:0 !important;
       margin-top:10px !important; font-size:14px !important; line-height:1.2 !important;
     }
     .jspsych-slider-container .jspsych-slider-label{ text-align:center !important; flex:0 0 auto !important; }
 
-    /* Hide seek bar + time display */
+    /* Hide seek bar + times */
     video::-webkit-media-controls-timeline,
     video::-webkit-media-controls-current-time-display,
     video::-webkit-media-controls-time-remaining-display { display:none !important; }
@@ -47,7 +42,7 @@
 <body></body>
 
 <script>
-  // Show JS errors on the page (helps when testing)
+  // Show errors on the page while testing
   window.onerror = (m, s, l, c, e) => {
     document.body.innerHTML = "<pre style='white-space:pre-wrap'>" + m + "\n" + (e && e.stack || "") + "</pre>";
   };
@@ -262,12 +257,11 @@
     };
   }
 
-  /* ---------- INTRO: one function, three trials (only once) ---------- */
+  /* ---------- INTRO: one function, three trials ---------- */
   function screenTrial(html, btn="Continue"){
     return { type: jsPsychHtmlButtonResponse, stimulus:`<div class="wrap">${html}</div>`, choices:[btn] };
   }
 
-  // Page 1 — Welcome
   const intro1 = screenTrial(`
     <div class="center">
       <h2>Welcome to the study!</h2>
@@ -277,7 +271,6 @@
     </div>
   `, "Next");
 
-  // Page 2 — What you'll do
   const intro2 = screenTrial(`
     <div class="center">
       <h3>What you'll do after each video</h3>
@@ -292,7 +285,6 @@
     </div>
   `, "Next");
 
-  // Page 3 — Sliders
   const intro3 = screenTrial(`
     <div class="center">
       <h3>Using the sliders</h3>
@@ -425,4 +417,5 @@
   ]);
 </script>
 </html>
+
 
