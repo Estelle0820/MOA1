@@ -1,33 +1,4 @@
-<!DOCTYPE html>
-<meta charset="utf-8" />
-<link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" />
-<script src="https://unpkg.com/jspsych@7.3.4"></script>
-<script src="https://unpkg.com/@jspsych/plugin-html-button-response@2.0.0"></script>
-
-<body>
-  <div id="jspsych-root"></div>
-  <script>
-    const root = document.getElementById('jspsych-root');
-
-    // Hide any accidental leftover siblings; show only newest
-    const guard = document.createElement('style');
-    guard.textContent = `#jspsych-root > *:not(:last-child){display:none!important}`;
-    document.head.appendChild(guard);
-
-    const jsPsych = initJsPsych({ display_element: root });
-
-    const t = (label) => ({
-      type: jsPsychHtmlButtonResponse,
-      on_start: () => { while (root.firstChild) root.removeChild(root.firstChild); },
-      stimulus: `<div style="padding:40px;text-align:center;font:16px system-ui">
-                   <h2>${label}</h2>
-                   <p>Click Continue for the next screen.</p>
-                 </div>`,
-      choices: ['Continue']
-    });
-
-    jsPsych.run([ t('Intro 1'), t('Intro 2'), t('Intro 3') ]);
-  </script>
-</body>
-
+<!DOCTYPE html><meta charset="utf-8">
+<title>hello</title>
+<body style="font:16px system-ui;padding:40px">Hello world.</body>
 
