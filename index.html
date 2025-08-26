@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <title>MOA1</title>
   <link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" />
+  <script src="https://unpkg.com/jspsych@7.3.4"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-survey-text@2.0.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-button-response@2.0.0"></script>
   <style>
     .jspsych-content-wrapper { display:flex; justify-content:center; }
     .jspsych-content { max-width:960px !important; margin:40px auto !important; }
@@ -336,7 +339,7 @@
 
   // Demographics
   const demographics = {
-    type: jsPsych.plugins['survey-text'],
+    type: jsPsychSurveyText,
     preamble: `
       <div class="center">
         <h2>Screen 6</h2>
