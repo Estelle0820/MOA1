@@ -234,21 +234,29 @@
   }
 
  function memoryTrialPractice(t){
-  const correct   = { src: t.stimulus, rate: 1.0, tag: "correct" };
-  const wrongSpd  = { src: t.stimulus, rate: 0.7, tag: "wrong_speed" };
-  // You can include decoy clips if you want, or just reuse the same one at different speeds
-  const wrong1    = { src: "videos/practice1_RtoL_demo.mp4", rate: 1.0, tag: "wrong_dir" };
-  const wrong2    = { src: wrong1.src, rate: 0.7, tag: "both_wrong" };
+  const src = t.stimulus;
+  const make = (tag, rate, flip) => ({ src, rate, tag, flip });
 
-  const opts = jsPsych.randomization.shuffle([correct, wrongSpd, wrong1, wrong2]);
+  // correct = normal speed, not flipped
+  // wrong_speed = slower, not flipped
+  // wrong_dir = flipped, normal speed
+  // both_wrong = flipped + slower
+  const opts = jsPsych.randomization.shuffle([
+    make("correct",     1.0, false),
+    make("wrong_speed", 0.7, false),
+    make("wrong_dir",   1.0, true),
+    make("both_wrong",  0.7, true)
+  ]);
+
   const letters = ["A","B","C","D"];
+  const correct_index = opts.findIndex(o => o.tag === "correct");
 
   const gridHTML = `
     <div class="grid">
       ${opts.map((o,i)=>`
         <div class="cell">
           <div class="tag">${letters[i]}</div>
-          <video id="opt${i}" muted loop playsinline preload="auto" width="420">
+          <video id="opt${i}" muted loop playsinline preload="auto" width="420" ${o.flip ? 'style="transform:scaleX(-1)"' : ''}>
             <source src="${o.src}" type="video/mp4">
           </video>
         </div>`).join("")}
@@ -263,16 +271,25 @@
       opts.forEach((o,i)=>{
         const v = document.getElementById(`opt${i}`);
         v.muted = true; v.playsInline = true; v.load();
-        const start = () => { v.defaultPlaybackRate = o.rate; v.playbackRate = o.rate;
-                              try { if (v.currentTime === 0) v.currentTime = 0.001; } catch(e){}
-                              v.play().catch(()=>{}); };
-        v.addEventListener("loadeddata", start, { once: true });
-        v.addEventListener("canplay",     start, { once: true });
+        const start = () => {
+          // lock speed
+          lockRate(v, o.rate);
+          try { if (v.currentTime === 0) v.currentTime = 0.001; } catch(e){}
+          v.play().catch(()=>{});
+        };
+        v.addEventListener("loadeddata", start, { once:true });
+        v.addEventListener("canplay",     start, { once:true });
       });
     },
-    data: { phase:"memory_practice", ...t }
+    data: {
+      phase: "memory_practice",
+      ...t,
+      correct_index,
+      option_order: opts.map(o => o.tag).join(",")
+    }
   };
 }
+  
   /* =================================
      Experiment constants
   ================================== */
