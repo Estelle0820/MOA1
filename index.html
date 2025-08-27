@@ -4,7 +4,6 @@
   <meta charset="utf-8" />
   <title>MOA1</title>
 
-  <!-- jsPsych CSS (works fine even when scripts are ESM) -->
   <link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" />
 
   <style>
@@ -16,11 +15,9 @@
     .grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; align-items:start; }
     .cell { text-align:center; }
     .tag { font-weight:700; margin:6px 0 8px; }
-
     h2.center, h3.center { 
     text-align: center; 
-  }
-  
+  }  
   ol, ul { 
     text-align: left; 
     margin-left: 1.5em; 
@@ -49,7 +46,7 @@
     document.body.innerHTML = "<pre style='white-space:pre-wrap'>" + m + "\n" + (e && e.stack || "") + "</pre>";
   };
 
-  // ---- ESM imports (matches what works for you) ----
+  // ---- ESM imports ----
   import { initJsPsych } from "https://esm.sh/jspsych";
   import jsPsychHtmlSliderResponse from "https://esm.sh/@jspsych/plugin-html-slider-response";
   import jsPsychHtmlButtonResponse from "https://esm.sh/@jspsych/plugin-html-button-response";
@@ -342,7 +339,7 @@
     mainTimeline.push(memoryTrial(T));
   });
 
-  // ---------- ONE QUESTION PER SCREEN (4 demo questions) ----------
+  // ---------- 4 demo questions ----------
   function oneTextQuestion({name, prompt, placeholder="", required=true, button="Continue"}) {
     return {
       type: jsPsychSurveyText,
