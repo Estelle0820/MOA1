@@ -211,27 +211,50 @@
       </div>
       <div class="center"><p><em>Which clip matches the one you just watched (same direction & speed)?</em></p></div>`;
 
-    return {
-      type: jsPsychHtmlButtonResponse,
-      stimulus: gridHTML,
-      choices: letters,
-      on_load: () => {
-        opts.forEach((o,i)=>{
-          const v = document.getElementById(`opt${i}`);
-          v.muted = true; v.playsInline = true; v.load();
-          const start = () => {
-            if (o.rate !== 1.0) lockRate(v, o.rate); else v.playbackRate = 1.0;
-            try { if (v.currentTime === 0) v.currentTime = 0.001; } catch(e){}
-            v.play().catch(()=>{});
-          };
-          v.addEventListener("loadeddata", start, { once: true });
-          v.addEventListener("canplay",     start, { once: true });
-        });
-      },
-      data: { phase: "memory", ...t, memory_option_order: opts.map(o=>o.tag).join(","), correct_index },
-      on_finish: d => { d.choice_index = d.response; d.is_correct = (d.response === correct_index); }
-    };
+return {
+  type: jsPsychHtmlButtonResponse,
+  stimulus: gridHTML,
+  choices: letters, // ensure const letters = ["A","B","C","D"] is defined above
+
+  on_load: () => {
+    opts.forEach((o, i) => {
+      const v = document.getElementById(`opt${i}`);
+      v.muted = true;
+      v.playsInline = true;
+      v.load();
+
+      const start = () => {
+        if (o.rate !== 1.0) {
+          lockRate(v, o.rate); // make sure lockRate() is defined elsewhere
+        } else {
+          v.playbackRate = 1.0;
+        }
+        try { if (v.currentTime === 0) v.currentTime = 0.001; } catch (e) {}
+        v.play().catch(() => {});
+      };
+
+      v.addEventListener("loadeddata", start, { once: true });
+      v.addEventListener("canplay",     start, { once: true });
+    });
+  },
+
+  data: {
+    phase: "memory",
+    ...t,
+    option_tags:  opts.map(o => o.tag),   // arrays are easier to use later
+    option_srcs:  opts.map(o => o.src),
+    option_rates: opts.map(o => o.rate),
+    correct_index
+  },
+
+  on_finish: (d) => {
+    d.choice_index  = d.response;
+    d.choice_letter = ["A","B","C","D"][d.response];
+    d.chosen_tag    = d.option_tags[d.response];
+    d.is_correct    = (d.response === d.correct_index);
+    d.correct_tag   = d.option_tags[d.correct_index];
   }
+};
 
  function memoryTrialPractice(t){
   const src = t.stimulus;
