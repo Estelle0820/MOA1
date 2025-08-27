@@ -233,52 +233,46 @@
     };
   }
 
-  function memoryTrialPractice(t){
-    const p1 = "videos/practice1_LtoR_demo.mp4";
-    const p2 = "videos/practice2_RtoL_demo.mp4";
-    const partner = (t.scene === "practice1") ? p2 : p1;
+ function memoryTrialPractice(t){
+  const correct   = { src: t.stimulus, rate: 1.0, tag: "correct" };
+  const wrongSpd  = { src: t.stimulus, rate: 0.7, tag: "wrong_speed" };
+  // You can include decoy clips if you want, or just reuse the same one at different speeds
+  const wrong1    = { src: "videos/practice1_RtoL_demo.mp4", rate: 1.0, tag: "wrong_dir" };
+  const wrong2    = { src: wrong1.src, rate: 0.7, tag: "both_wrong" };
 
-    const correct   = { src: t.stimulus, rate: 1.0, tag: "correct" };
-    const wrongDir  = { src: partner,    rate: 1.0, tag: "wrong_dir" };
-    const wrongSpd  = { src: t.stimulus, rate: 0.7, tag: "wrong_speed" };
-    const bothWrong = { src: partner,    rate: 0.7, tag: "both_wrong" };
+  const opts = jsPsych.randomization.shuffle([correct, wrongSpd, wrong1, wrong2]);
+  const letters = ["A","B","C","D"];
 
-    const opts = jsPsych.randomization.shuffle([correct, wrongDir, wrongSpd, bothWrong]);
-    const letters = ["A","B","C","D"];
+  const gridHTML = `
+    <div class="grid">
+      ${opts.map((o,i)=>`
+        <div class="cell">
+          <div class="tag">${letters[i]}</div>
+          <video id="opt${i}" muted loop playsinline preload="auto" width="420">
+            <source src="${o.src}" type="video/mp4">
+          </video>
+        </div>`).join("")}
+    </div>
+    <div class="center"><p><em>Which clip matches the one you just watched (same direction & speed)?</em></p></div>`;
 
-    const gridHTML = `
-      <div class="grid">
-        ${opts.map((o,i)=>`
-          <div class="cell">
-            <div class="tag">${letters[i]}</div>
-            <video id="opt${i}" muted loop playsinline preload="auto" width="420">
-              <source src="${o.src}" type="video/mp4">
-            </video>
-          </div>`).join("")}
-      </div>
-      <div class="center"><p><em>Which clip matches the one you just watched (same direction & speed)?</em></p></div>`;
-
-    return {
-      type: jsPsychHtmlButtonResponse,
-      stimulus: gridHTML,
-      choices: letters,
-      on_load: () => {
-        opts.forEach((o,i)=>{
-          const v = document.getElementById(`opt${i}`);
-          v.muted = true; v.playsInline = true; v.load();
-          const start = () => {
-            v.defaultPlaybackRate = o.rate; v.playbackRate = o.rate;
-            try { if (v.currentTime === 0) v.currentTime = 0.001; } catch(e){}
-            v.play().catch(()=>{});
-          };
-          v.addEventListener("loadeddata", start, { once: true });
-          v.addEventListener("canplay",     start, { once: true });
-        });
-      },
-      data: { phase: "memory_practice", ...t }
-    };
-  }
-
+  return {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: gridHTML,
+    choices: letters,
+    on_load: () => {
+      opts.forEach((o,i)=>{
+        const v = document.getElementById(`opt${i}`);
+        v.muted = true; v.playsInline = true; v.load();
+        const start = () => { v.defaultPlaybackRate = o.rate; v.playbackRate = o.rate;
+                              try { if (v.currentTime === 0) v.currentTime = 0.001; } catch(e){}
+                              v.play().catch(()=>{}); };
+        v.addEventListener("loadeddata", start, { once: true });
+        v.addEventListener("canplay",     start, { once: true });
+      });
+    },
+    data: { phase:"memory_practice", ...t }
+  };
+}
   /* =================================
      Experiment constants
   ================================== */
@@ -321,18 +315,16 @@
      Practice timeline
   ================================== */
   const practiceTrials = [
-    { scene: "practice1", direction: "LtoR", moa: "demo", stimulus: "videos/practice1_LtoR_demo.mp4" },
-    { scene: "practice2", direction: "RtoL", moa: "demo", stimulus: "videos/practice2_RtoL_demo.mp4" }
+    { scene: "practice1", direction: "LtoR", moa: "demo", stimulus: "videos/practice1_LtoR_demo.mp4" }
   ];
 
-  const practiceTimeline = [];
-  practiceTrials.forEach(T => {
-    practiceTimeline.push(viewClip(T));
-    practiceTimeline.push(prefSlider(T));
-    practiceTimeline.push(simultaneitySlider(T));
-    practiceTimeline.push(memoryTrialPractice(T));
-  });
-
+  const practiceTimeline = [
+    viewClip(practiceTrials[0]),
+    prefSlider(practiceTrials[0]),
+    simultaneitySlider(practiceTrials[0]),
+    memoryTrialPractice(practiceTrials[0])
+  ];
+  
   const practiceCompleteScreen = screenTrial(`
     <div class="center">
       <h3>Practice complete!</h3>
