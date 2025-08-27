@@ -80,6 +80,7 @@
       const payload = {
         timestamp: new Date().toISOString(),
         participant: getParam("pid") || "",
+        userAgent: navigator.userAgent,
         data: jsPsych.data.get().values()
       };
       try {
@@ -209,117 +210,125 @@
             </video>
           </div>`).join("")}
       </div>
-      <div class="center"><p><em>Which clip matches the one you just watched (same direction & speed)?</em></p></div>`;
+      <div class="center"><p>Which clip matches the one you just watched (same direction & speed)?</p></div>`;
 
-return {
-  type: jsPsychHtmlButtonResponse,
-  stimulus: gridHTML,
-  choices: letters, // ensure const letters = ["A","B","C","D"] is defined above
+    return {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: gridHTML,
+      choices: letters,
 
-  on_load: () => {
-    opts.forEach((o, i) => {
-      const v = document.getElementById(`opt${i}`);
-      v.muted = true;
-      v.playsInline = true;
-      v.load();
+      on_load: () => {
+        opts.forEach((o, i) => {
+          const v = document.getElementById(`opt${i}`);
+          v.muted = true;
+          v.playsInline = true;
+          v.load();
 
-      const start = () => {
-        if (o.rate !== 1.0) {
-          lockRate(v, o.rate); // make sure lockRate() is defined elsewhere
-        } else {
-          v.playbackRate = 1.0;
-        }
-        try { if (v.currentTime === 0) v.currentTime = 0.001; } catch (e) {}
-        v.play().catch(() => {});
-      };
+          const start = () => {
+            if (o.rate !== 1.0) {
+              lockRate(v, o.rate);
+            } else {
+              v.playbackRate = 1.0;
+            }
+            try { if (v.currentTime === 0) v.currentTime = 0.001; } catch (e) {}
+            v.play().catch(() => {});
+          };
 
-      v.addEventListener("loadeddata", start, { once: true });
-      v.addEventListener("canplay",     start, { once: true });
-    });
-  },
+          v.addEventListener("loadeddata", start, { once: true });
+          v.addEventListener("canplay",     start, { once: true });
+        });
+      },
 
-  data: {
-    phase: "memory",
-    ...t,
-    option_tags:  opts.map(o => o.tag),   // arrays are easier to use later
-    option_srcs:  opts.map(o => o.src),
-    option_rates: opts.map(o => o.rate),
-    correct_index
-  },
+      data: {
+        phase: "memory",
+        ...t,
+        option_tags:  opts.map(o => o.tag),
+        option_srcs:  opts.map(o => o.src),
+        option_rates: opts.map(o => o.rate),
+        correct_index,
+        is_correct: null // will be set on_finish so it becomes its own column
+      },
 
-  on_finish: (d) => {
-    d.choice_index  = d.response;
-    d.choice_letter = ["A","B","C","D"][d.response];
-    d.chosen_tag    = d.option_tags[d.response];
-    d.is_correct    = (d.response === d.correct_index);
-    d.correct_tag   = d.option_tags[d.correct_index];
+      on_finish: (d) => {
+        d.choice_index  = d.response;
+        d.choice_letter = ["A","B","C","D"][d.response];
+        d.chosen_tag    = d.option_tags[d.response];
+        d.correct_tag   = d.option_tags[d.correct_index];
+        d.is_correct    = (d.response === d.correct_index);
+      }
+    };
   }
-};
-}     
 
- function memoryTrialPractice(t){
-  const src = t.stimulus;
-  const make = (tag, rate, flip) => ({ src, rate, tag, flip });
+  function memoryTrialPractice(t){
+    const src = t.stimulus;
+    const make = (tag, rate, flip) => ({ src, rate, tag, flip });
 
-  // correct = normal speed, not flipped
-  // wrong_speed = slower, not flipped
-  // wrong_dir = flipped, normal speed
-  // both_wrong = flipped + slower
-  const opts = jsPsych.randomization.shuffle([
-    make("correct",     1.0, false),
-    make("wrong_speed", 0.7, false),
-    make("wrong_dir",   1.0, true),
-    make("both_wrong",  0.7, true)
-  ]);
+    // correct = normal speed, not flipped
+    // wrong_speed = slower, not flipped
+    // wrong_dir = flipped, normal speed
+    // both_wrong = flipped + slower
+    const opts = jsPsych.randomization.shuffle([
+      make("correct",     1.0, false),
+      make("wrong_speed", 0.7, false),
+      make("wrong_dir",   1.0, true),
+      make("both_wrong",  0.7, true)
+    ]);
 
-  const letters = ["A","B","C","D"];
-  const correct_index = opts.findIndex(o => o.tag === "correct");
+    const letters = ["A","B","C","D"];
+    const correct_index = opts.findIndex(o => o.tag === "correct");
 
-  const gridHTML = `
-    <div class="grid">
-      ${opts.map((o,i)=>`
-        <div class="cell">
-          <div class="tag">${letters[i]}</div>
-          <video id="opt${i}" muted loop playsinline preload="auto" width="420" ${o.flip ? 'style="transform:scaleX(-1)"' : ''}>
-            <source src="${o.src}" type="video/mp4">
-          </video>
-        </div>`).join("")}
-    </div>
-    <div class="center"><p><em>Which clip matches the one you just watched (same direction & speed)?</em></p></div>`;
+    const gridHTML = `
+      <div class="grid">
+        ${opts.map((o,i)=>`
+          <div class="cell">
+            <div class="tag">${letters[i]}</div>
+            <video id="opt${i}" muted loop playsinline preload="auto" width="420" ${o.flip ? 'style="transform:scaleX(-1)"' : ''}>
+              <source src="${o.src}" type="video/mp4">
+            </video>
+          </div>`).join("")}
+      </div>
+      <div class="center"><p>Which clip matches the one you just watched (same direction & speed)?</p></div>`;
 
-  return {
-    type: jsPsychHtmlButtonResponse,
-    stimulus: gridHTML,
-    choices: letters,
-    on_load: () => {
-      opts.forEach((o,i)=>{
-        const v = document.getElementById(`opt${i}`);
-        v.muted = true; v.playsInline = true; v.load();
-        const start = () => {
-          // lock speed
-          lockRate(v, o.rate);
-          try { if (v.currentTime === 0) v.currentTime = 0.001; } catch(e){}
-          v.play().catch(()=>{});
-        };
-        v.addEventListener("loadeddata", start, { once:true });
-        v.addEventListener("canplay",     start, { once:true });
-      });
-    },
-    data: {
-      phase: "memory_practice",
-      ...t,
-      correct_index,
-      option_order: opts.map(o => o.tag).join(",")
-    }
-  };
-}
-  
+    return {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: gridHTML,
+      choices: letters,
+      on_load: () => {
+        opts.forEach((o,i)=>{
+          const v = document.getElementById(`opt${i}`);
+          v.muted = true; v.playsInline = true; v.load();
+          const start = () => {
+            lockRate(v, o.rate);
+            try { if (v.currentTime === 0) v.currentTime = 0.001; } catch(e){}
+            v.play().catch(()=>{});
+          };
+          v.addEventListener("loadeddata", start, { once:true });
+          v.addEventListener("canplay",     start, { once:true });
+        });
+      },
+      data: {
+        phase: "memory_practice",
+        ...t,
+        correct_index,
+        option_order: opts.map(o => o.tag).join(","),
+        is_correct: null // will be set on_finish
+      },
+      on_finish: (d) => {
+        d.choice_index = d.response;
+        const tags = d.option_order.split(",");
+        d.chosen_tag  = tags[d.response];
+        d.correct_tag = tags[d.correct_index];
+        d.is_correct  = (d.response === d.correct_index);
+      }
+    };
+  }
+
   /* =================================
      Experiment constants
   ================================== */
   const scenes     = ["car","dog","horse","penguin","plane","roomba"];
   const directions = ["LtoR","RtoL"];
-  const moas       = ["0s","3s","1s"]; // adjust if filenames differ
+  const moas       = ["0s","1.1s","3s"]; // <-- ensure filenames use 1.1s; if not, change to ["0s","1s","3s"]
 
   /* =================================
      Intro screens
@@ -328,12 +337,12 @@ return {
     screenTrial(`
       <h2 class="center">Welcome to the study!</h2>
       <p style="text-align:left;">
-      In this study, you will watch 36 short animated videos showing objects moving across the screen. 
-      The sound will also move between your left and right headphones as the object moves.
+        In this study, you will watch 36 short animated videos showing objects moving across the screen. 
+        The sound will also move between your left and right headphones as the object moves.
       </p>
       <p style="text-align:left;">
-      To clearly hear the sound moving from side to side, 
-      <strong>please make sure you are wearing headphones in a quiet environment before continuing.<strong>
+        To clearly hear the sound moving from side to side, 
+        <strong>please make sure you are wearing headphones in a quiet environment before continuing.</strong>
       </p>
     `, "Next"),
     screenTrial(`
@@ -353,8 +362,8 @@ return {
       <ul>
         <li>Move the slider to the number that best matches your judgment.</li>
         <li>If you want to select <strong>2 (Neutral)</strong>, click directly on the scale at 2.</li>
-        <p>Let's start with a practice trial to learn the task.<p>
       </ul>
+      <p>Let's start with a practice trial to learn the task.</p>
     `, "Begin practice")
   ];
 
@@ -405,7 +414,7 @@ return {
     }
     return shuffled;
   }
-  const constrained = shuffleWithConstraint(allTrials).slice(0,2);
+  const constrained = shuffleWithConstraint(allTrials).slice(0,2); // 2 trials for quick testing
 
   const mainTimeline = [];
   constrained.forEach(T => {
@@ -469,7 +478,7 @@ return {
           Because this research is potentially important, we kindly ask that you please do not discuss the study with others
           before they participate. Prior knowledge could affect their natural responses.
         </p>
-        <p class="center"><strong>Thank you very much for your assistance with this project!<strong></p>
+        <p class="center"><strong>Thank you very much for your assistance with this project!</strong></p>
       </div>
     `,
     choices: ["Finish"]
@@ -488,5 +497,6 @@ return {
   ]);
 </script>
 </html>
+
 
 
