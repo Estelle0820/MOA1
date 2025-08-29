@@ -26,6 +26,9 @@
     .cell { text-align: center; }
     .tag { font-weight: 700; margin: 6px 0 8px; }
 
+     /* hover */
+    .cell video { cursor: pointer; }
+
     /* Slider labels: 0–4 */
     .jspsych-slider-container .jspsych-slider-labels {
       display: flex !important;
@@ -50,6 +53,51 @@
 <body></body>
 
 <script type="module">
+
+  /* --- Hover / Touch playback helper for option grids --- */
+function setupHoverGrid(videoIds, rates){
+  const vids = videoIds.map(id => document.getElementById(id));
+
+  const pauseAll = () => vids.forEach(v => { try { v.pause(); } catch(_){} });
+
+  vids.forEach((v, i) => {
+    const rate = rates[i] ?? 1.0;
+
+    // Prepare element (muted allows autoplay on hover)
+    v.muted = true;
+    v.playsInline = true;
+
+    // Prime the video on first hover/touch for faster start
+    const prime = () => { try { v.load(); } catch(_){}; v.removeEventListener('mouseenter', prime); };
+    v.addEventListener('mouseenter', prime, { once:true });
+
+    // Desktop: hover to play; leaving pauses & rewinds
+    v.addEventListener('mouseenter', () => {
+      pauseAll();
+      if (rate !== 1.0) { lockRate(v, rate); } else { v.playbackRate = 1.0; }
+      try { if (v.currentTime === 0) v.currentTime = 0.001; } catch(_){}
+      v.play().catch(()=>{});
+    });
+    v.addEventListener('mouseleave', () => {
+      try { v.pause(); v.currentTime = 0; } catch(_){}
+    });
+
+    // Mobile/tablet: tap to toggle; second tap pauses
+    v.addEventListener('touchstart', (e) => {
+      e.preventDefault(); // prevent scroll-to-zoom “click”
+      const wasPlaying = !v.paused && !v.ended;
+      pauseAll();
+      if (!wasPlaying){
+        if (rate !== 1.0) { lockRate(v, rate); } else { v.playbackRate = 1.0; }
+        try { if (v.currentTime === 0) v.currentTime = 0.001; } catch(_){}
+        v.play().catch(()=>{});
+      } else {
+        try { v.pause(); v.currentTime = 0; } catch(_){}
+      }
+    }, { passive:false });
+  });
+}
+
   /* =================================
      Error surface (handy for testing)
   ================================== */
@@ -190,138 +238,116 @@
   }
 
   function memoryTrial(t){
-    const flip      = t.direction === "LtoR" ? "RtoL" : "LtoR";
-    const correct   = { src: `videos/${t.scene}_${t.direction}_${t.moa}.mp4`, rate: 1.0, tag: "correct" };
-    const wrongDir  = { src: `videos/${t.scene}_${flip}_${t.moa}.mp4`,        rate: 1.0, tag: "wrong_dir" };
-    const wrongSpd  = { src: correct.src,                                      rate: 0.7, tag: "wrong_speed" };
-    const bothWrong = { src: wrongDir.src,                                     rate: 0.7, tag: "both_wrong" };
+  const flip      = t.direction === "LtoR" ? "RtoL" : "LtoR";
+  const correct   = { src: `videos/${t.scene}_${t.direction}_${t.moa}.mp4`, rate: 1.0, tag: "correct" };
+  const wrongDir  = { src: `videos/${t.scene}_${flip}_${t.moa}.mp4`,        rate: 1.0, tag: "wrong_dir" };
+  const wrongSpd  = { src: correct.src,                                      rate: 0.7, tag: "wrong_speed" };
+  const bothWrong = { src: wrongDir.src,                                     rate: 0.7, tag: "both_wrong" };
 
-    const opts = jsPsych.randomization.shuffle([correct, wrongDir, wrongSpd, bothWrong]);
-    const correct_index = opts.findIndex(o => o.tag === "correct");
-    const letters = ["A","B","C","D"];
+  const opts = jsPsych.randomization.shuffle([correct, wrongDir, wrongSpd, bothWrong]);
+  const correct_index = opts.findIndex(o => o.tag === "correct");
+  const letters = ["A","B","C","D"];
 
-    const gridHTML = `
-      <div class="grid">
-        ${opts.map((o,i)=>`
-          <div class="cell">
-            <div class="tag">${letters[i]}</div>
-            <video id="opt${i}" muted loop playsinline preload="auto" width="420">
-              <source src="${o.src}" type="video/mp4">
-            </video>
-          </div>`).join("")}
-      </div>
-      <div class="center"><p>Which clip matches the one you just watched (same direction & speed)?</p></div>`;
+  const gridHTML = `
+    <div class="grid">
+      ${opts.map((o,i)=>`
+        <div class="cell">
+          <div class="tag">${letters[i]}</div>
+          <!-- NOTE: no autoplay here; loop is fine so it keeps playing while hovered -->
+          <video id="opt${i}" loop playsinline preload="metadata" width="420">
+            <source src="${o.src}" type="video/mp4">
+          </video>
+        </div>`).join("")}
+    </div>
+    <div class="center"><p>Hover (or tap) an option to play. Which clip matches the one you just watched (same direction & speed)?</p></div>`;
 
-    return {
-      type: jsPsychHtmlButtonResponse,
-      stimulus: gridHTML,
-      choices: letters,
+  return {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: gridHTML,
+    choices: letters,
 
-      on_load: () => {
-        opts.forEach((o, i) => {
-          const v = document.getElementById(`opt${i}`);
-          v.muted = true;
-          v.playsInline = true;
-          v.load();
+    on_load: () => {
+      // Wire hover/touch behavior for all four cells
+      const ids   = opts.map((_,i)=>`opt${i}`);
+      const rates = opts.map(o => o.rate);
+      setupHoverGrid(ids, rates);
+    },
 
-          const start = () => {
-            if (o.rate !== 1.0) {
-              lockRate(v, o.rate);
-            } else {
-              v.playbackRate = 1.0;
-            }
-            try { if (v.currentTime === 0) v.currentTime = 0.001; } catch (e) {}
-            v.play().catch(() => {});
-          };
+    data: {
+      phase: "memory",
+      ...t,
+      option_tags:  opts.map(o => o.tag),
+      option_srcs:  opts.map(o => o.src),
+      option_rates: opts.map(o => o.rate),
+      correct_index,
+      is_correct: null
+    },
 
-          v.addEventListener("loadeddata", start, { once: true });
-          v.addEventListener("canplay",     start, { once: true });
-        });
-      },
+    on_finish: (d) => {
+      d.choice_index  = d.response;
+      d.choice_letter = ["A","B","C","D"][d.response];
+      d.chosen_tag    = d.option_tags[d.response];
+      d.correct_tag   = d.option_tags[d.correct_index];
+      d.is_correct    = (d.response === d.correct_index);
+    }
+  };
+}
 
-      data: {
-        phase: "memory",
-        ...t,
-        option_tags:  opts.map(o => o.tag),
-        option_srcs:  opts.map(o => o.src),
-        option_rates: opts.map(o => o.rate),
-        correct_index,
-        is_correct: null // will be set on_finish so it becomes its own column
-      },
 
-      on_finish: (d) => {
-        d.choice_index  = d.response;
-        d.choice_letter = ["A","B","C","D"][d.response];
-        d.chosen_tag    = d.option_tags[d.response];
-        d.correct_tag   = d.option_tags[d.correct_index];
-        d.is_correct    = (d.response === d.correct_index);
-      }
-    };
-  }
+ 
+function memoryTrialPractice(t){
+  const src = t.stimulus;
+  const make = (tag, rate, flip) => ({ src, rate, tag, flip });
 
-  function memoryTrialPractice(t){
-    const src = t.stimulus;
-    const make = (tag, rate, flip) => ({ src, rate, tag, flip });
+  const opts = jsPsych.randomization.shuffle([
+    make("correct",     1.0, false),
+    make("wrong_speed", 0.7, false),
+    make("wrong_dir",   1.0, true),
+    make("both_wrong",  0.7, true)
+  ]);
 
-    // correct = normal speed, not flipped
-    // wrong_speed = slower, not flipped
-    // wrong_dir = flipped, normal speed
-    // both_wrong = flipped + slower
-    const opts = jsPsych.randomization.shuffle([
-      make("correct",     1.0, false),
-      make("wrong_speed", 0.7, false),
-      make("wrong_dir",   1.0, true),
-      make("both_wrong",  0.7, true)
-    ]);
+  const letters = ["A","B","C","D"];
+  const correct_index = opts.findIndex(o => o.tag === "correct");
 
-    const letters = ["A","B","C","D"];
-    const correct_index = opts.findIndex(o => o.tag === "correct");
+  const gridHTML = `
+    <div class="grid">
+      ${opts.map((o,i)=>`
+        <div class="cell">
+          <div class="tag">${letters[i]}</div>
+          <video id="opt${i}" loop playsinline preload="metadata" width="420" ${o.flip ? 'style="transform:scaleX(-1)"' : ''}>
+            <source src="${o.src}" type="video/mp4">
+          </video>
+        </div>`).join("")}
+    </div>
+    <div class="center"><p>Hover (or tap) an option to play. Which clip matches the one you just watched (same direction & speed)?</p></div>`;
 
-    const gridHTML = `
-      <div class="grid">
-        ${opts.map((o,i)=>`
-          <div class="cell">
-            <div class="tag">${letters[i]}</div>
-            <video id="opt${i}" muted loop playsinline preload="auto" width="420" ${o.flip ? 'style="transform:scaleX(-1)"' : ''}>
-              <source src="${o.src}" type="video/mp4">
-            </video>
-          </div>`).join("")}
-      </div>
-      <div class="center"><p>Which clip matches the one you just watched (same direction & speed)?</p></div>`;
+  return {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: gridHTML,
+    choices: letters,
 
-    return {
-      type: jsPsychHtmlButtonResponse,
-      stimulus: gridHTML,
-      choices: letters,
-      on_load: () => {
-        opts.forEach((o,i)=>{
-          const v = document.getElementById(`opt${i}`);
-          v.muted = true; v.playsInline = true; v.load();
-          const start = () => {
-            lockRate(v, o.rate);
-            try { if (v.currentTime === 0) v.currentTime = 0.001; } catch(e){}
-            v.play().catch(()=>{});
-          };
-          v.addEventListener("loadeddata", start, { once:true });
-          v.addEventListener("canplay",     start, { once:true });
-        });
-      },
-      data: {
-        phase: "memory_practice",
-        ...t,
-        correct_index,
-        option_order: opts.map(o => o.tag).join(","),
-        is_correct: null // will be set on_finish
-      },
-      on_finish: (d) => {
-        d.choice_index = d.response;
-        const tags = d.option_order.split(",");
-        d.chosen_tag  = tags[d.response];
-        d.correct_tag = tags[d.correct_index];
-        d.is_correct  = (d.response === d.correct_index);
-      }
-    };
-  }
+    on_load: () => {
+      const ids   = opts.map((_,i)=>`opt${i}`);
+      const rates = opts.map(o => o.rate);
+      setupHoverGrid(ids, rates);
+    },
+
+    data: {
+      phase: "memory_practice",
+      ...t,
+      correct_index,
+      option_order: opts.map(o => o.tag).join(","),
+      is_correct: null
+    },
+    on_finish: (d) => {
+      d.choice_index = d.response;
+      const tags = d.option_order.split(",");
+      d.chosen_tag  = tags[d.response];
+      d.correct_tag = tags[d.correct_index];
+      d.is_correct  = (d.response === d.correct_index);
+    }
+  };
+}
 
   /* =================================
      Experiment constants
