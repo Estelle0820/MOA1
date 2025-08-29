@@ -417,7 +417,7 @@
     }
     return shuffled;
   }
-  const constrained = shuffleWithConstraint(allTrials).slice(0,2); // 2 trials for quick testing
+  const constrained = shuffleWithConstraint(allTrials); // 2 trials for quick testing
 
   const mainTimeline = [];
   constrained.forEach(T => {
