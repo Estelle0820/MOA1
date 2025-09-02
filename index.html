@@ -360,10 +360,29 @@ function memoryTrialPractice(t){
      Intro screens
   ================================== */
 <script type="module">
-  // Consent flag (optional if you log it elsewhere)
+  /* =================================
+     Imports
+  ================================== */
+  import { initJsPsych } from "https://esm.sh/jspsych";
+  import jsPsychHtmlSliderResponse from "https://esm.sh/@jspsych/plugin-html-slider-response";
+  import jsPsychHtmlButtonResponse from "https://esm.sh/@jspsych/plugin-html-button-response";
+  import jsPsychSurveyText        from "https://esm.sh/@jspsych/plugin-survey-text";
+
+  /* =================================
+     Init
+  ================================== */
+  const jsPsych = initJsPsych({
+    on_finish: async () => {
+      // upload/save as you already do (always save)
+      // ...
+    }
+  });
+
+  /* =================================
+     Consent
+  ================================== */
   let CONSENT_GIVEN = false;
 
-  // --- Consent HTML (your IRB text) ---
   const CONSENT_HTML = `
     <div style="max-width:900px;margin:0 auto;text-align:left;font-size:16px;line-height:1.5">
       <h2 class="center">Informed Consent for Research Participation</h2>
@@ -371,40 +390,22 @@ function memoryTrialPractice(t){
          <strong>Department:</strong> Department of Psychology, University at Albany<br>
          <strong>Term:</strong> Fall 2025<br>
          <strong>Study Title:</strong> “Preferences and Memory for Short Animated Clips (Study 1)”</p>
-
       <p><strong>PURPOSE:</strong> This study examines people’s preferences for and memory of short animated clips.</p>
-
       <p><strong>PROCEDURES:</strong> You will watch 36 short animated videos. After each video, you will:
         (1) rate how much you liked the clip, (2) judge to what extent the visual and auditory motion began at the same time, and
-        (3) complete a multiple-choice memory test by selecting which of four options matches the clip (options may differ in movement
-        direction and/or speed). Please wear headphones in a quiet environment. After all 36 trials, you’ll answer a few brief demographic
-        questions. Total participation time is ~30 minutes.</p>
-
-      <p><strong>BENEFITS:</strong> You may not directly benefit. Society may benefit from knowledge about preferences and memory for short animations.</p>
-
-      <p><strong>RISKS:</strong> No more than minimal risk is anticipated. Participation is confidential and data are anonymous (no name or personal identifiers).
-         You may skip any questions or discontinue at any time without penalty.</p>
-
-      <p><strong>PARTICIPATION:</strong> Voluntary. You may stop at any time without penalty or loss of benefits. You may also withhold responses from inclusion.</p>
-
-      <p><strong>COMPENSATION:</strong> Students who participate will receive <strong>0.5</strong> research participation credit toward APSY 101 requirements.</p>
-
-      <p><strong>CONFIDENTIALITY:</strong> All responses are anonymous. No identifying information will be collected. Data will be retained for a minimum of 3 and a
-         maximum of 10 years, then destroyed. Results will be reported at the group level only (e.g., journals, conferences). The IRB and
-         University/government officials may inspect records as required by law.</p>
-
-      <p><strong>Contacts:</strong> Researcher: Sijia (Estelle) Song (ssong@albany.edu).
-         Faculty Advisor: Dr. Ronald Friedman (rfriedman@albany.edu).</p>
-
-      <p><strong>Your Rights:</strong> This research is overseen by the University at Albany IRB. Questions about your rights or concerns about the study:
-         Office of Regulatory and Research Compliance, 1400 Washington Ave (MSC 100E) Albany, NY 12222, 1-866-857-5459, rco@albany.edu.</p>
-
+        (3) complete a multiple-choice memory test… Total participation time is ~30 minutes.</p>
+      <p><strong>BENEFITS:</strong> …</p>
+      <p><strong>RISKS:</strong> …</p>
+      <p><strong>PARTICIPATION:</strong> …</p>
+      <p><strong>COMPENSATION:</strong> …</p>
+      <p><strong>CONFIDENTIALITY:</strong> …</p>
+      <p><strong>Contacts:</strong> …</p>
+      <p><strong>Your Rights:</strong> …</p>
       <hr>
       <p><em>I have read, or been informed of, the information about this study. I hereby consent to participate in the study.</em></p>
     </div>
   `;
 
-  // --- Consent trial (Yes / No) ---
   const consentTrial = {
     type: jsPsychHtmlButtonResponse,
     stimulus: CONSENT_HTML,
@@ -416,48 +417,42 @@ function memoryTrialPractice(t){
     }
   };
 
-  // Expose for the main timeline
-  window.__CONSENT_TRIAL__ = consentTrial;
-</script>
-  
-const introScreens = [
-  screenTrial(`
-    <h2 class="center">Welcome to the study!</h2>
-    <p style="text-align:left;">
-      In this study, you will watch 36 short animated videos showing objects moving across the screen.
-      The sound will also move between your left and right headphones as the object moves.
-    </p>
-    <p style="text-align:left;">
-      To clearly hear the sound moving from side to side,
-      <strong>please make sure you are wearing headphones in a quiet environment before continuing.</strong>
-    </p>
-    <p style="text-align:left;">
-      Please note that you may need to scroll down to view the entire page of instructions or questions.
-    </p>
-  `, "Next"),
+  /* =================================
+     Helpers (screenTrial etc.)
+  ================================== */
+  function screenTrial(html, btn = "Continue"){
+    return { type: jsPsychHtmlButtonResponse, stimulus: `<div class="wrap">${html}</div>`, choices: [btn] };
+  }
 
-  screenTrial(`
-    <h3 class="center">What you'll do after each video</h3>
-    <ol>
-      <li><strong>Preference rating</strong> – “How much did you like the clip you just watched?”</li>
-      <li><strong>Timing judgment</strong> – “To what extent did the visual and auditory motion begin at the same time?”<br>
-        <small>This means: did the movement you <em>saw</em> and the movement you <em>heard</em> seem to start together, or did one begin slightly earlier?</small>
-      </li>
-      <li><strong>Memory test</strong> – Choose which of four options matches the clip you just watched. Options may differ in <em>direction</em> and/or <em>speed</em>.</li>
-    </ol>
-    <p>After all 36 trials, you’ll answer a few brief demographic questions.</p>
-  `, "Next"),
+  /* =================================
+     Intro screens
+  ================================== */
+  const introScreens = [
+    screenTrial(`
+      <h2 class="center">Welcome to the study!</h2>
+      <p style="text-align:left;">In this study, you will watch 36 short animated videos…</p>
+      <p style="text-align:left;"><strong>Please wear headphones in a quiet environment.</strong></p>
+      <p style="text-align:left;">You may need to scroll to see the full page.</p>
+    `, "Next"),
+    screenTrial(`
+      <h3 class="center">What you'll do after each video</h3>
+      <ol>
+        <li><strong>Preference rating</strong>…</li>
+        <li><strong>Timing judgment</strong>…</li>
+        <li><strong>Memory test</strong>…</li>
+      </ol>
+      <p>After all 36 trials, you’ll answer brief demographic questions.</p>
+    `, "Next"),
+    screenTrial(`
+      <h3 class="center">Using the sliders</h3>
+      <ul>
+        <li>Slider from <strong>0 to 4</strong>.</li>
+        <li>Click directly on <strong>2</strong> for Neutral.</li>
+      </ul>
+      <p>Let's start with a practice trial.</p>
+    `, "Begin practice")
+  ];
 
-  screenTrial(`
-    <h3 class="center">Using the sliders</h3>
-    <p>For the preference and timing ratings, you will use a slider from <strong>0 to 4</strong>.</p>
-    <ul>
-      <li>Move the slider to the number that best matches your judgment.</li>
-      <li>If you want to select <strong>2 (Neutral)</strong>, click directly on the scale at 2.</li>
-    </ul>
-    <p>Let's start with a practice trial to learn the task.</p>
-  `, "Begin practice")
-];
 
   /* =================================
      Practice timeline
@@ -580,7 +575,7 @@ const introScreens = [
      Run
   ================================== */
   window.__CONSENT_TRIAL__,
-    ...consent_trial
+    consenTrial,
     ...introScreens,
     ...practiceTimeline,
     practiceCompleteScreen,
