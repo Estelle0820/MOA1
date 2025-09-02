@@ -420,42 +420,44 @@ function memoryTrialPractice(t){
   window.__CONSENT_TRIAL__ = consentTrial;
 </script>
   
-  const introScreens = [
-    screenTrial(`
-      <h2 class="center">Welcome to the study!</h2>
-      <p style="text-align:left;">
-        In this study, you will watch 36 short animated videos showing objects moving across the screen. 
-        The sound will also move between your left and right headphones as the object moves.
-      </p>
-      <p style="text-align:left;">
-        To clearly hear the sound moving from side to side, 
-        <strong>please make sure you are wearing headphones in a quiet environment before continuing.</strong>
-      </p>
-      <p style="text-align:left;">
-        Please note that you may need to scroll down to view the entire page of instructions or questions.
-      </p>
-    `, "Next"),
-    screenTrial(`
-      <h3 class="center">What you'll do after each video</h3>
-      <ol>
-        <li><strong>Preference rating</strong> – “How much did you like the clip you just watched?”</li>
-        <li><strong>Timing judgment</strong> – “To what extent did the visual and auditory motion begin at the same time?”<br>
-          <small>This means: did the movement you <em>saw</em> and the movement you <em>heard</em> seem to start together, or did one begin slightly earlier?</small>
-        </li>
-        <li><strong>Memory test</strong> – Choose which of four options matches the clip you just watched. Options may differ in <em>direction</em> and/or <em>speed</em>.</li>
-      </ol>
-      <p>After all 36 trials, you’ll answer a few brief demographic questions.</p>
-    `, "Next"),
-    screenTrial(`
-      <h3 class="center">Using the sliders</h3>
-      <p>For the preference and timing ratings, you will use a slider from <strong>0 to 4</strong>.</p>
-      <ul>
-        <li>Move the slider to the number that best matches your judgment.</li>
-        <li>If you want to select <strong>2 (Neutral)</strong>, click directly on the scale at 2.</li>
-      </ul>
-      <p>Let's start with a practice trial to learn the task.</p>
-    `, "Begin practice")
-  ];
+const introScreens = [
+  screenTrial(`
+    <h2 class="center">Welcome to the study!</h2>
+    <p style="text-align:left;">
+      In this study, you will watch 36 short animated videos showing objects moving across the screen.
+      The sound will also move between your left and right headphones as the object moves.
+    </p>
+    <p style="text-align:left;">
+      To clearly hear the sound moving from side to side,
+      <strong>please make sure you are wearing headphones in a quiet environment before continuing.</strong>
+    </p>
+    <p style="text-align:left;">
+      Please note that you may need to scroll down to view the entire page of instructions or questions.
+    </p>
+  `, "Next"),
+
+  screenTrial(`
+    <h3 class="center">What you'll do after each video</h3>
+    <ol>
+      <li><strong>Preference rating</strong> – “How much did you like the clip you just watched?”</li>
+      <li><strong>Timing judgment</strong> – “To what extent did the visual and auditory motion begin at the same time?”<br>
+        <small>This means: did the movement you <em>saw</em> and the movement you <em>heard</em> seem to start together, or did one begin slightly earlier?</small>
+      </li>
+      <li><strong>Memory test</strong> – Choose which of four options matches the clip you just watched. Options may differ in <em>direction</em> and/or <em>speed</em>.</li>
+    </ol>
+    <p>After all 36 trials, you’ll answer a few brief demographic questions.</p>
+  `, "Next"),
+
+  screenTrial(`
+    <h3 class="center">Using the sliders</h3>
+    <p>For the preference and timing ratings, you will use a slider from <strong>0 to 4</strong>.</p>
+    <ul>
+      <li>Move the slider to the number that best matches your judgment.</li>
+      <li>If you want to select <strong>2 (Neutral)</strong>, click directly on the scale at 2.</li>
+    </ul>
+    <p>Let's start with a practice trial to learn the task.</p>
+  `, "Begin practice")
+];
 
   /* =================================
      Practice timeline
