@@ -359,6 +359,67 @@ function memoryTrialPractice(t){
   /* =================================
      Intro screens
   ================================== */
+<script type="module">
+  // Consent flag (optional if you log it elsewhere)
+  let CONSENT_GIVEN = false;
+
+  // --- Consent HTML (your IRB text) ---
+  const CONSENT_HTML = `
+    <div style="max-width:900px;margin:0 auto;text-align:left;font-size:16px;line-height:1.5">
+      <h2 class="center">Informed Consent for Research Participation</h2>
+      <p><strong>Primary Investigator:</strong> Sijia (Estelle) Song<br>
+         <strong>Department:</strong> Department of Psychology, University at Albany<br>
+         <strong>Term:</strong> Fall 2025<br>
+         <strong>Study Title:</strong> “Preferences and Memory for Short Animated Clips (Study 1)”</p>
+
+      <p><strong>PURPOSE:</strong> This study examines people’s preferences for and memory of short animated clips.</p>
+
+      <p><strong>PROCEDURES:</strong> You will watch 36 short animated videos. After each video, you will:
+        (1) rate how much you liked the clip, (2) judge to what extent the visual and auditory motion began at the same time, and
+        (3) complete a multiple-choice memory test by selecting which of four options matches the clip (options may differ in movement
+        direction and/or speed). Please wear headphones in a quiet environment. After all 36 trials, you’ll answer a few brief demographic
+        questions. Total participation time is ~30 minutes.</p>
+
+      <p><strong>BENEFITS:</strong> You may not directly benefit. Society may benefit from knowledge about preferences and memory for short animations.</p>
+
+      <p><strong>RISKS:</strong> No more than minimal risk is anticipated. Participation is confidential and data are anonymous (no name or personal identifiers).
+         You may skip any questions or discontinue at any time without penalty.</p>
+
+      <p><strong>PARTICIPATION:</strong> Voluntary. You may stop at any time without penalty or loss of benefits. You may also withhold responses from inclusion.</p>
+
+      <p><strong>COMPENSATION:</strong> Students who participate will receive <strong>0.5</strong> research participation credit toward APSY 101 requirements.</p>
+
+      <p><strong>CONFIDENTIALITY:</strong> All responses are anonymous. No identifying information will be collected. Data will be retained for a minimum of 3 and a
+         maximum of 10 years, then destroyed. Results will be reported at the group level only (e.g., journals, conferences). The IRB and
+         University/government officials may inspect records as required by law.</p>
+
+      <p><strong>Contacts:</strong> Researcher: Sijia (Estelle) Song (ssong@albany.edu).
+         Faculty Advisor: Dr. Ronald Friedman (rfriedman@albany.edu).</p>
+
+      <p><strong>Your Rights:</strong> This research is overseen by the University at Albany IRB. Questions about your rights or concerns about the study:
+         Office of Regulatory and Research Compliance, 1400 Washington Ave (MSC 100E) Albany, NY 12222, 1-866-857-5459, rco@albany.edu.</p>
+
+      <hr>
+      <p><em>I have read, or been informed of, the information about this study. I hereby consent to participate in the study.</em></p>
+    </div>
+  `;
+
+  // --- Consent trial (Yes / No) ---
+  const consentTrial = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: CONSENT_HTML,
+    choices: ["Yes, I consent", "No, I do not consent"],
+    on_finish: (data) => {
+      data.phase = "consent";
+      data.consent_choice = data.response === 0 ? "yes" : "no";
+      CONSENT_GIVEN = (data.response === 0);
+    }
+  };
+
+  // Expose for the main timeline
+  window.__CONSENT_TRIAL__ = consentTrial;
+</script>
+  
   const introScreens = [
     screenTrial(`
       <h2 class="center">Welcome to the study!</h2>
@@ -516,7 +577,8 @@ function memoryTrialPractice(t){
   /* =================================
      Run
   ================================== */
-  jsPsych.run([
+  window.__CONSENT_TRIAL__,
+    ...consent_trial
     ...introScreens,
     ...practiceTimeline,
     practiceCompleteScreen,
