@@ -50,37 +50,55 @@
   import jsPsychHtmlButtonResponse from "https://esm.sh/@jspsych/plugin-html-button-response";
   import jsPsychSurveyText        from "https://esm.sh/@jspsych/plugin-survey-text";
 
-  /* =========================== Helpers & data upload =========================== */
-  function getParam(name){
-    const m = new URLSearchParams(location.search).get(name);
-    return m ? decodeURIComponent(m) : "";
-  }
-  const GS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyc7DZuAv1G0pMtfHrMocTlWCgsDgg09Pun99RtUwyJTR0hDOZNdOnQvtIe4MK0EqSUng/exec";
+/* =========================== Helpers & data upload =========================== */
+function getParam(name){
+  const m = new URLSearchParams(location.search).get(name);
+  return m ? decodeURIComponent(m) : "";
+}
 
-  const jsPsych = initJsPsych({
-    on_finish: async () => {
-      const payload = {
-        timestamp: new Date().toISOString(),
-        participant: getParam("pid") || "",
-        userAgent: navigator.userAgent,
-        data: jsPsych.data.get().values()
-      };
-      try {
-        await fetch(GS_WEBAPP_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-          keepalive: true
-        });
-        alert("Thanks! Your data was uploaded to Google Sheets.");
-      } catch (e) {
-        console.error(e);
-        jsPsych.data.get().localSave("csv", "moa1_fallback.csv");
-        alert("Upload failed — CSV downloaded locally instead.");
-      }
-    }
+const GS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyc7DZuAv1G0pMtfHrMocTlWCgsDgg09Pun99RtUwyJTR0hDOZNdOnQvtIe4MK0EqSUng/exec";
+
+// (Optional) trim heavy fields before upload to keep payload small
+function compactRows(rows){
+  return rows.map(r => {
+    const {
+      phase, scene, direction, moa, rt, response,
+      correct_index, is_correct, choice_index, choice_letter,
+      option_tags // keep small, informative arrays
+    } = r;
+    return {
+      phase, scene, direction, moa, rt, response,
+      correct_index, is_correct, choice_index, choice_letter,
+      option_tags
+    };
   });
+}
+
+const jsPsych = initJsPsych({
+  on_finish: async () => {
+    const raw = jsPsych.data.get().values();
+    const payload = {
+      timestamp: new Date().toISOString(),
+      participant: getParam("pid") || "",
+      userAgent: navigator.userAgent,
+      // use compactRows(raw) if you want a smaller upload; or keep raw
+      data: compactRows(raw)
+    };
+
+    try {
+      await fetch(GS_WEBAPP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=UTF-8" }, // simple request (no preflight)
+        body: JSON.stringify(payload)
+      });
+      alert("Thanks! Your data was uploaded to Google Sheets.");
+    } catch (e) {
+      console.error(e);
+      jsPsych.data.get().localSave("csv", "moa1_fallback.csv");
+      alert("Upload failed — CSV downloaded locally instead.");
+    }
+  }
+});
 
   /* ================================ UI utils ================================= */
   function lockRate(video, rate){
@@ -405,7 +423,7 @@ function shuffleWithSceneGap(trials, maxTries = 5000){
   return result;
 }
 
-const constrained = shuffleWithSceneGap(allTrials);
+const constrained = shuffleWithSceneGap(allTrials).slice(0,3);
 
 const mainTimeline = [];
 constrained.forEach(T => {
