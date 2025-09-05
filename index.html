@@ -375,27 +375,45 @@ const CONSENT_HTML = `
       });
     });
   });
-  function shuffleWithConstraint(trials){
-    let shuffled = jsPsych.randomization.shuffle(trials);
-    for (let tries = 0; tries < 1000; tries++){
-      let ok = true;
-      for (let i = 1; i < shuffled.length; i++){
-        if (shuffled[i-1].scene === shuffled[i].scene && shuffled[i-1].direction === shuffled[i].direction){ ok = false; break; }
-      }
-      if (ok) return shuffled;
-      shuffled = jsPsych.randomization.shuffle(trials);
+function shuffleWithSceneGap(trials, maxTries = 5000){
+  for (let tries = 0; tries < maxTries; tries++){
+    const s = jsPsych.randomization.shuffle(trials);
+    let ok = true;
+    for (let i = 1; i < s.length; i++){
+      if (s[i-1].scene === s[i].scene){ ok = false; break; }
     }
-    return shuffled;
+    if (ok) return s;
   }
-  const constrained = shuffleWithConstraint(allTrials);
-  const mainTimeline = [];
-  constrained.forEach(T => {
-    mainTimeline.push(viewClip(T));
-    mainTimeline.push(prefSlider(T));
-    mainTimeline.push(simultaneitySlider(T));
-    mainTimeline.push(memoryTrial(T));
-  });
 
+  // Greedy fallback: interleave by scene
+  const buckets = {};
+  trials.forEach(t => { (buckets[t.scene] = buckets[t.scene] || []).push(t); });
+  Object.values(buckets).forEach(arr => jsPsych.randomization.shuffle(arr));
+
+  const sceneKeys = Object.keys(buckets);
+  const result = [];
+  let lastScene = null;
+
+  while (result.length < trials.length){
+    const choices = sceneKeys.filter(k => k !== lastScene && buckets[k].length > 0);
+    const pickScene = choices.length
+      ? choices[Math.floor(Math.random() * choices.length)]
+      : sceneKeys.find(k => buckets[k].length > 0);
+    result.push(buckets[pickScene].pop());
+    lastScene = pickScene;
+  }
+  return result;
+}
+
+const constrained = shuffleWithSceneGap(allTrials);
+
+const mainTimeline = [];
+constrained.forEach(T => {
+  mainTimeline.push(viewClip(T));
+  mainTimeline.push(prefSlider(T));
+  mainTimeline.push(simultaneitySlider(T));
+  mainTimeline.push(memoryTrial(T));
+});
   /* ============================ Final questions & Debrief ============================ */
   function oneTextQuestion({name, prompt, placeholder = "", required = true, button = "Continue"}) {
     return {
