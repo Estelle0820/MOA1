@@ -423,7 +423,7 @@ function shuffleWithSceneGap(trials, maxTries = 5000){
   return result;
 }
 
-const constrained = shuffleWithSceneGap(allTrials).slice(0,3);
+const constrained = shuffleWithSceneGap(allTrials);
 
 const mainTimeline = [];
 constrained.forEach(T => {
