@@ -542,16 +542,18 @@ const credit_section = {
   choices: ["Finish"]
 };
   /* ===================================== Run ===================================== */
-jsPsych.run([
-  consentTrial,           // consent first
-  ...introScreens,
-  ...practiceTimeline,
-  practiceCompleteScreen,
-  ...mainTimeline,
-  q_age, q_gender, q_race, q_hearing,
-  final_debrief,
-  credit_section
-]);
-
+    jsPsych.run([
+      consentTrial,
+      ...introScreens,
+      ...practiceTimeline,
+      practiceCompleteScreen,
+      ...mainTimeline,
+      q_age, q_gender, q_race, q_hearing,
+      final_debrief,
+      credit_section
+    ]);
+  })();
+</script>
+</html>
 
 
