@@ -57,8 +57,8 @@ function getParam(name){
 }
 
 const GS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyc7DZuAv1G0pMtfHrMocTlWCgsDgg09Pun99RtUwyJTR0hDOZNdOnQvtIe4MK0EqSUng/exec";
-
-// (Optional) trim heavy fields before upload to keep payload small
+  
+// trim heavy fields before upload to keep payload small
 function compactRows(rows){
   return rows.map(r => {
     const {
@@ -73,31 +73,53 @@ function compactRows(rows){
     };
   });
 }
+  
+// --- SONA code & completion code ---
+const sonaCode =
+  getParam("pid") || getParam("survey_code") || getParam("sona_id") || getParam("id") || "";
 
+const completionCode = sonaCode || ("MOA1-" + Math.random().toString(36).slice(2,8).toUpperCase());
+  
 const jsPsych = initJsPsych({
-  on_finish: async () => {
-    const raw = jsPsych.data.get().values();
-    const payload = {
-      timestamp: new Date().toISOString(),
-      participant: getParam("pid") || "",
-      userAgent: navigator.userAgent,
-      // use compactRows(raw) if you want a smaller upload; or keep raw
-      data: compactRows(raw)
-    };
+on_finish: async () => {
+  // all data (we'll compute completion status and also upload compact rows)
+  const allData   = jsPsych.data.get();
+  const nMemory   = allData.filter({ phase: "memory" }).count();  // MOA1: 36 memory trials
+  const isComplete= (nMemory === 36);
 
-    try {
-      await fetch(GS_WEBAPP_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=UTF-8" }, // simple request (no preflight)
-        body: JSON.stringify(payload)
-      });
-      alert("Thanks! Your data was uploaded to Google Sheets.");
-    } catch (e) {
-      console.error(e);
-      jsPsych.data.get().localSave("csv", "moa1_fallback.csv");
-      alert("Upload failed — CSV downloaded locally instead.");
-    }
+  const payload = {
+    timestamp: new Date().toISOString(),
+    // keep a top-level copy for easy matching in your Sheet
+    sona_code: sonaCode,
+    completion_code: completionCode,
+    is_complete: isComplete,
+    n_trials: allData.count(),
+    userAgent: navigator.userAgent,
+
+    // upload trial rows (already carry sona_code & completion_code via addProperties)
+    data: compactRows(allData.values())
+  };
+
+  try {
+    await fetch(GS_WEBAPP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=UTF-8" }, // simple request (no preflight)
+      body: JSON.stringify(payload),
+      keepalive: true
+    });
+    alert("Thanks! Your data was uploaded to Google Sheets.");
+  } catch (e) {
+    console.error(e);
+    jsPsych.data.get().localSave("csv", "moa1_fallback.csv");
+    alert("Upload failed — CSV downloaded locally instead.");
   }
+}
+});
+
+// Make the codes appear on every data row (and thus in your upload)
+jsPsych.data.addProperties({
+  sona_code: sonaCode,
+  completion_code: completionCode
 });
 
   /* ================================ UI utils ================================= */
